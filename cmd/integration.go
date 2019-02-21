@@ -150,7 +150,6 @@ func setupNitro(dl persistence.DataLayer) (spawner.EnvironmentSpawner, ghclient.
 	rc := ghclient.NewGitHubClient(integrationcfg.githubToken)
 	ng := &namegen.FakeNameGenerator{Unique: true}
 	mc := &metrics.FakeCollector{}
-	nrapp := &nullNewRelicApp{}
 	lp := &locker.FakePreemptiveLockProvider{
 		ChannelFactory: func() chan struct{} {
 			return make(chan struct{})
@@ -171,16 +170,15 @@ func setupNitro(dl persistence.DataLayer) (spawner.EnvironmentSpawner, ghclient.
 		return nil, nil, errors.Wrap(err, "error getting metahelm chart installer")
 	}
 	return &nitroenv.Manager{
-		NF:    nf,
-		DL:    dl,
-		RC:    rc,
-		MC:    mc,
-		NG:    ng,
-		LP:    lp,
-		NRApp: nrapp,
-		FS:    fs,
-		MG:    mg,
-		CI:    ci,
+		NF: nf,
+		DL: dl,
+		RC: rc,
+		MC: mc,
+		NG: ng,
+		LP: lp,
+		FS: fs,
+		MG: mg,
+		CI: ci,
 	}, rc, nil
 }
 

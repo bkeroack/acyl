@@ -53,9 +53,6 @@ func TestSecretsPopulateAllSecrets(t *testing.T) {
 	if testSlackConfig.Token != sm[testSecretPrefix+slackTokenid] {
 		t.Fatalf("bad value for slack token: %v", testSlackConfig.Token)
 	}
-	if testServerConfig.NewRelicAPIKey != sm[testSecretPrefix+newRelicKeyid] {
-		t.Fatalf("bad value for newrelic api key: %v", testServerConfig.NewRelicAPIKey)
-	}
 	if testPGConfig.PostgresURI != sm[testSecretPrefix+dbURIid] {
 		t.Fatalf("bad value for db uri: %v", testPGConfig.PostgresURI)
 	}

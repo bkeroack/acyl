@@ -36,13 +36,12 @@ spec:
         {{ if .Values.app.disable_tls }}
           - "--disable-tls"
         {{ end }}
-          - "--enable-newrelic={{ .Values.app.newrelic_enabled }}"
-        {{ if .Values.app.newrelic_enabled }}
-          - "--newrelic-app"
+        {{ if .Values.app.service_name }}
+          - "--datadog-service-name"
         {{ if .Values.is_dqa }}
-          - "{{ .Values.app.newrelic_app_name }}-{{ .Values.env_name }}"
+          - "{{ .Values.app.datadog_service_name }}-{{ .Values.env_name }}"
         {{ else }}
-          - "{{ .Values.app.newrelic_app_name }}"
+          - "{{ .Values.app.datadog_service_name }}"
         {{ end }}
         {{ end }}
           - "--global-environment-limit"
@@ -55,6 +54,8 @@ spec:
           - '{{ .Values.app.consul_server_host }}:8500'
           - "--dogstatsd-addr"
           - "{{ .Values.app.dogstatsd_addr }}"
+          - "--datadog-tracing-agent-addr"
+          - "{{ .Values.app.datadog_tracing_agent_addr }}"
           - "--cleanup-interval"
           - "{{ .Values.app.cleanup.legacy_reaper_interval_secs }}"
         {{ if .Values.is_dqa }}
@@ -138,11 +139,6 @@ spec:
               secretKeyRef:
                 name: dummy-acyl-secrets
                 key: github_token
-          - name: ACYL_NEWRELIC_API_KEY
-            valueFrom:
-              secretKeyRef:
-                name: dummy-acyl-secrets
-                key: newrelic_api_key
           - name: ACYL_API_KEYS
             valueFrom:
               secretKeyRef:

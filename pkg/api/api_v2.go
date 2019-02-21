@@ -16,8 +16,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
-	newrelic "github.com/newrelic/go-agent"
 	"github.com/pkg/errors"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
 // API output schema
@@ -95,27 +95,25 @@ func v2EventLogFromEventLog(el *models.EventLog) *v2EventLog {
 
 type v2api struct {
 	apiBase
-	dl    persistence.DataLayer
-	ge    *ghevent.GitHubEventWebhook
-	es    spawner.EnvironmentSpawner
-	sc    config.ServerConfig
-	nrapp newrelic.Application
+	dl persistence.DataLayer
+	ge *ghevent.GitHubEventWebhook
+	es spawner.EnvironmentSpawner
+	sc config.ServerConfig
 }
 
-func newV2API(dl persistence.DataLayer, ge *ghevent.GitHubEventWebhook, es spawner.EnvironmentSpawner, sc config.ServerConfig, nrapp newrelic.Application, logger *log.Logger) (*v2api, error) {
+func newV2API(dl persistence.DataLayer, ge *ghevent.GitHubEventWebhook, es spawner.EnvironmentSpawner, sc config.ServerConfig, logger *log.Logger) (*v2api, error) {
 	return &v2api{
 		apiBase: apiBase{
 			logger: logger,
 		},
-		dl:    dl,
-		ge:    ge,
-		es:    es,
-		sc:    sc,
-		nrapp: nrapp,
+		dl: dl,
+		ge: ge,
+		es: es,
+		sc: sc,
 	}, nil
 }
 
-func (api *v2api) register(r *mux.Router) error {
+func (api *v2api) register(r *muxtrace.Router) error {
 	if r == nil {
 		return fmt.Errorf("router is nil")
 	}
@@ -127,7 +125,7 @@ func (api *v2api) register(r *mux.Router) error {
 	return nil
 }
 
-func (api *v2api) marshalQAEnvironments(qas []models.QAEnvironment, w http.ResponseWriter, txn newrelic.Transaction) {
+func (api *v2api) marshalQAEnvironments(qas []models.QAEnvironment, w http.ResponseWriter) {
 	w.Header().Add("Content-Type", "application/json")
 	output := []v2QAEnvironment{}
 	for _, e := range qas {
@@ -135,30 +133,28 @@ func (api *v2api) marshalQAEnvironments(qas []models.QAEnvironment, w http.Respo
 	}
 	j, err := json.Marshal(output)
 	if err != nil {
-		api.internalError(w, fmt.Errorf("error marshaling environments: %v", err), txn)
+		api.internalError(w, fmt.Errorf("error marshaling environments: %v", err))
 		return
 	}
 	w.Write(j)
 }
 
 func (api *v2api) envDetailHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EnvDetail", w, r)
-	defer txn.End()
 	name := mux.Vars(r)["name"]
 	qa, err := api.dl.GetQAEnvironmentConsistently(name)
 	if err != nil {
-		api.internalError(w, fmt.Errorf("error getting environment: %v", err), txn)
+		api.internalError(w, fmt.Errorf("error getting environment: %v", err))
 		return
 	}
 	if qa == nil {
-		api.notfoundError(w, txn)
+		api.notfoundError(w)
 		return
 	}
 
 	output := v2QAEnvironmentFromQAEnvironment(qa)
 	j, err := json.Marshal(output)
 	if err != nil {
-		api.internalError(w, fmt.Errorf("error marshaling environment: %v", err), txn)
+		api.internalError(w, fmt.Errorf("error marshaling environment: %v", err))
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")
@@ -166,36 +162,34 @@ func (api *v2api) envDetailHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *v2api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EnvSearch", w, r)
-	defer txn.End()
 	qvars := r.URL.Query()
 	if _, ok := qvars["pr"]; ok {
 		if _, ok := qvars["repo"]; !ok {
-			api.badRequestError(w, fmt.Errorf("search by PR requires repo name"), txn)
+			api.badRequestError(w, fmt.Errorf("search by PR requires repo name"))
 			return
 		}
 	}
 	if status, ok := qvars["status"]; ok {
 		if status[0] == "destroyed" && len(qvars) == 1 {
-			api.badRequestError(w, fmt.Errorf("'destroyed' status searches require at least one other search parameter"), txn)
+			api.badRequestError(w, fmt.Errorf("'destroyed' status searches require at least one other search parameter"))
 			return
 		}
 	}
 	if _, ok := qvars["tracking_ref"]; ok {
 		if _, ok := qvars["repo"]; !ok {
-			api.badRequestError(w, fmt.Errorf("search by tracking_ref requires repo name"), txn)
+			api.badRequestError(w, fmt.Errorf("search by tracking_ref requires repo name"))
 			return
 		}
 	}
 	if len(qvars) == 0 {
-		api.badRequestError(w, fmt.Errorf("at least one search parameter is required"), txn)
+		api.badRequestError(w, fmt.Errorf("at least one search parameter is required"))
 		return
 	}
 	ops := models.EnvSearchParameters{}
 
 	for k, vs := range qvars {
 		if len(vs) != 1 {
-			api.badRequestError(w, fmt.Errorf("unexpected value for %v: %v", k, vs), txn)
+			api.badRequestError(w, fmt.Errorf("unexpected value for %v: %v", k, vs))
 			return
 		}
 		v := vs[0]
@@ -205,7 +199,7 @@ func (api *v2api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
 		case "pr":
 			pr, err := strconv.Atoi(v)
 			if err != nil || pr < 1 {
-				api.badRequestError(w, fmt.Errorf("bad PR number"), txn)
+				api.badRequestError(w, fmt.Errorf("bad PR number"))
 				return
 			}
 			ops.Pr = uint(pr)
@@ -218,7 +212,7 @@ func (api *v2api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
 		case "status":
 			s, err := models.EnvironmentStatusFromString(v)
 			if err != nil {
-				api.badRequestError(w, fmt.Errorf("unknown status"), txn)
+				api.badRequestError(w, fmt.Errorf("unknown status"))
 				return
 			}
 			ops.Status = s
@@ -228,9 +222,9 @@ func (api *v2api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	qas, err := api.dl.Search(ops)
 	if err != nil {
-		api.internalError(w, fmt.Errorf("error searching in DB: %v", err), txn)
+		api.internalError(w, fmt.Errorf("error searching in DB: %v", err))
 	}
-	api.marshalQAEnvironments(qas, w, txn)
+	api.marshalQAEnvironments(qas, w)
 }
 
 func (api *v2api) healthCheck(w http.ResponseWriter, r *http.Request) {
@@ -239,26 +233,24 @@ func (api *v2api) healthCheck(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *v2api) eventLogHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EventLog", w, r)
-	defer txn.End()
 	idstr := mux.Vars(r)["id"]
 	id, err := uuid.Parse(idstr)
 	if err != nil {
-		api.badRequestError(w, errors.Wrap(err, "error parsing id"), txn)
+		api.badRequestError(w, errors.Wrap(err, "error parsing id"))
 		return
 	}
 	el, err := api.dl.GetEventLogByID(id)
 	if err != nil {
-		api.internalError(w, errors.Wrap(err, "error fetching event logs"), txn)
+		api.internalError(w, errors.Wrap(err, "error fetching event logs"))
 		return
 	}
 	if el == nil {
-		api.notfoundError(w, txn)
+		api.notfoundError(w)
 		return
 	}
 	j, err := json.Marshal(v2EventLogFromEventLog(el))
 	if err != nil {
-		api.internalError(w, errors.Wrap(err, "error marshaling event log"), txn)
+		api.internalError(w, errors.Wrap(err, "error marshaling event log"))
 	}
 	w.Header().Add("Content-Type", "application/json")
 	w.Write(j)

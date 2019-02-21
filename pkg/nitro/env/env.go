@@ -26,8 +26,8 @@ import (
 	metahelmlib "github.com/dollarshaveclub/metahelm/pkg/metahelm"
 	"github.com/google/uuid"
 	"github.com/imdario/mergo"
-	newrelic "github.com/newrelic/go-agent"
 	"github.com/pkg/errors"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	billy "gopkg.in/src-d/go-billy.v4"
 	billyutil "gopkg.in/src-d/go-billy.v4/util"
 )
@@ -45,6 +45,17 @@ var mpfx = "env."
 // NotificationsFactoryFunc is a function that takes a notifications config from the triggering repo, processes it according to any global defaults, and returns a Router suitable to push notifications
 type NotificationsFactoryFunc func(lf func(string, ...interface{}), notifications models.Notifications, user string) notifier.Router
 
+func enrichSpan(span tracer.Span, rd *models.RepoRevisionData) {
+	span.SetTag("base_branch", rd.BaseBranch)
+	span.SetTag("base_sha", rd.BaseSHA)
+	span.SetTag("pull_request", rd.PullRequest)
+	span.SetTag("repo", rd.Repo)
+	span.SetTag("source_branch", rd.SourceBranch)
+	span.SetTag("source_ref", rd.SourceRef)
+	span.SetTag("source_sha", rd.SourceSHA)
+	span.SetTag("user", rd.User)
+}
+
 // Manager is an object that creates/updates/deletes environments in k8s
 type Manager struct {
 	NF                   NotificationsFactoryFunc
@@ -54,15 +65,13 @@ type Manager struct {
 	MC                   metrics.Collector
 	NG                   namegen.NameGenerator
 	LP                   locker.PreemptiveLockProvider
-	NRApp                newrelic.Application
 	FS                   billy.Filesystem
 	MG                   meta.Getter
 	CI                   metahelm.Installer
 	AWSCreds             config.AWSCreds
 	S3Config             config.S3Config
-
-	failureTemplate *template.Template
-	s3p             s3Pusher
+	failureTemplate      *template.Template
+	s3p                  s3Pusher
 }
 
 func (m *Manager) log(ctx context.Context, msg string, args ...interface{}) {
@@ -98,6 +107,14 @@ func (m *Manager) pushNotification(ctx context.Context, env *newEnv, event notif
 		m.log(ctx, "pushNotification: %v: newenv.env is nil", event.Key())
 		return
 	}
+	span, _ := tracer.SpanFromContext(context.Background())
+	parentSpan, ok := getSpanFromContext(ctx)
+	if !ok {
+		m.log(ctx, "pushNotification: error getting span from context")
+	} else {
+		span = tracer.StartSpan("process_env_config", tracer.ChildOf(parentSpan.Context()))
+	}
+	defer span.Finish(tracer.WithError(err))
 	// if ctx is cancelled, we don't want to use it to fetch the commit status
 	cmsg, err = m.RC.GetCommitMessage(validContext(ctx, context.Background()), env.env.Repo, env.env.SourceSHA)
 	if err != nil {
@@ -150,14 +167,20 @@ func (m *Manager) pushNotification(ctx context.Context, env *newEnv, event notif
 	}
 }
 
-func (m *Manager) createPendingGithubStatus(ctx context.Context, rd *models.RepoRevisionData) error {
+func (m *Manager) createPendingGithubStatus(ctx context.Context, rd *models.RepoRevisionData) (err error) {
+	parentSpan, ok := getSpanFromContext(ctx)
+	if !ok {
+		return errors.New("error generating new env: unable to get span from context")
+	}
+	span := tracer.StartSpan("create_pending_github_status", tracer.ChildOf(parentSpan.Context()))
+	defer span.Finish(tracer.WithError(err))
 	cs := &ghclient.CommitStatus{
 		Context:     "Acyl",
 		Status:      "pending",
 		Description: "Environment is being created",
 		TargetURL:   "https://media.giphy.com/media/oiymhxu13VYEo/giphy.gif",
 	}
-	err := m.RC.SetStatus(ctx, rd.Repo, rd.SourceSHA, cs)
+	err = m.RC.SetStatus(ctx, rd.Repo, rd.SourceSHA, cs)
 	if err != nil {
 		m.log(ctx, "error setting pending github commit status: %v", err)
 	}
@@ -193,20 +216,14 @@ func (m *Manager) createSuccessGithubStatus(ctx context.Context, rd *models.Repo
 }
 
 // lockingOperation sets up the lock and if successful executes f, releasing the lock afterward
-func (m *Manager) lockingOperation(ctx context.Context, txnName, repo, pr string, f func(ctx context.Context) error) error {
-	var err error
-	txn := m.NRApp.StartTransaction(txnName, nil, nil)
-	defer txn.End()
-	defer func() {
-		if err != nil {
-			m.log(ctx, err.Error())
-			txn.NoticeError(err)
-		}
-	}()
-	ctx, cf := context.WithCancel(newNRTxnContext(ctx, txn))
+func (m *Manager) lockingOperation(ctx context.Context, operationName, repo, pr string, f func(ctx context.Context) error) (err error) {
+	rootSpan := tracer.StartSpan(operationName)
+	defer rootSpan.Finish(tracer.WithError(err))
+
+	ctx, cf := context.WithCancel(newSpanContext(ctx, rootSpan))
 	defer cf()
 
-	end := m.MC.Timing(mpfx+"lock_wait", "triggering_repo:"+repo, "txn_name:"+txnName)
+	end := m.MC.Timing(mpfx+"lock_wait", "triggering_repo:"+repo, "operation_name:"+operationName)
 	lock := m.LP.NewPreemptiveLocker(repo, pr, locker.PreemptiveLockerOpts{})
 	preempt, err := lock.Lock(ctx)
 	if err != nil {
@@ -221,16 +238,16 @@ func (m *Manager) lockingOperation(ctx context.Context, txnName, repo, pr string
 	go func() {
 		select {
 		case <-preempt: // Lock got preempted, cancel action
-			m.MC.Increment(mpfx+"lock_preempt", "triggering_repo:"+repo, "txn_name:"+txnName)
-			m.log(ctx, "operation preempted: %v: %v: %v", txnName, repo, pr)
+			m.MC.Increment(mpfx+"lock_preempt", "triggering_repo:"+repo, "operation_name:"+operationName)
+			m.log(ctx, "operation preempted: %v: %v: %v", operationName, repo, pr)
 		case <-stop:
 		}
 		cf()
 	}()
-	endop := m.MC.Timing(mpfx+"operation", "triggering_repo:"+repo, "txn_name:"+txnName)
+	endop := m.MC.Timing(mpfx+"operation", "triggering_repo:"+repo, "operation_name:"+operationName)
 	err = f(ctx)
 	if err != nil {
-		m.log(ctx, "operation error (user: %v, sys: %v): %v: %v: %v: %v", nitroerrors.IsUserError(err), nitroerrors.IsSystemError(err), txnName, repo, pr, err)
+		m.log(ctx, "operation error (user: %v, sys: %v): %v: %v: %v: %v", nitroerrors.IsUserError(err), nitroerrors.IsSystemError(err), operationName, repo, pr, err)
 	}
 	endop(fmt.Sprintf("success:%v", err == nil), fmt.Sprintf("user_error:%v", nitroerrors.IsUserError(err)), fmt.Sprintf("system_error:%v", nitroerrors.IsSystemError(err)))
 	return err
@@ -240,7 +257,15 @@ func (m *Manager) lockingOperation(ctx context.Context, txnName, repo, pr string
 func (m *Manager) Create(ctx context.Context, rd models.RepoRevisionData) (string, error) {
 	var err error
 	var name string
-	err = m.lockingOperation(ctx, "NitroCreate", rd.Repo, strconv.Itoa(int(rd.PullRequest)), func(ctx context.Context) error {
+	err = m.lockingOperation(ctx, "nitro_create", rd.Repo, strconv.Itoa(int(rd.PullRequest)), func(ctx context.Context) error {
+		// note (mk): is this nonsense?
+		rootSpan, ok := getSpanFromContext(ctx)
+		if !ok {
+			return errors.New("create: unable to get span from context")
+		}
+		enrichSpan(rootSpan, &rd)
+		ctx = newSpanContext(ctx, rootSpan)
+
 		name, err = m.create(ctx, &rd)
 		return err
 	})
@@ -280,6 +305,12 @@ func (m *Manager) generateNewEnv(ctx context.Context, rd *models.RepoRevisionDat
 			err = nitroerrors.SystemError(err)
 		}
 	}()
+	parentSpan, ok := getSpanFromContext(ctx)
+	if !ok {
+		return nil, errors.New("error generating new env: unable to get span from context")
+	}
+	envSpan := tracer.StartSpan("generate_new_env", tracer.ChildOf(parentSpan.Context()))
+	defer envSpan.Finish(tracer.WithError(err))
 	envs, err := m.DL.GetQAEnvironmentsByRepoAndPR(rd.Repo, rd.PullRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, "error checking for existing environment record")
@@ -338,6 +369,12 @@ func (m *Manager) processEnvConfig(ctx context.Context, env *models.QAEnvironmen
 			err = nitroerrors.SystemError(err)
 		}
 	}()
+	parentSpan, ok := getSpanFromContext(ctx)
+	if !ok {
+		return nil, errors.New("error generating new env: unable to get span from context")
+	}
+	span := tracer.StartSpan("process_env_config", tracer.ChildOf(parentSpan.Context()))
+	defer span.Finish(tracer.WithError(err))
 	ne = &newEnv{env: env}
 	rc, err := m.getRepoConfig(ctx, rd)
 	if err != nil {
@@ -369,7 +406,13 @@ func (m *Manager) processEnvConfig(ctx context.Context, env *models.QAEnvironmen
 	return ne, nil
 }
 
-func (m *Manager) fetchCharts(ctx context.Context, name string, rc *models.RepoConfig) (string, meta.ChartLocations, error) {
+func (m *Manager) fetchCharts(ctx context.Context, name string, rc *models.RepoConfig) (_ string, _ meta.ChartLocations, err error) {
+	parentSpan, ok := getSpanFromContext(ctx)
+	if !ok {
+		return "", nil, errors.New("error generating new env: unable to get span from context")
+	}
+	span := tracer.StartSpan("fetch_charts", tracer.ChildOf(parentSpan.Context()))
+	defer span.Finish(tracer.WithError(err))
 	td, err := tempDir(m.FS, "", name)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "error generating temp dir")
@@ -389,6 +432,10 @@ func (m *Manager) fetchCharts(ctx context.Context, name string, rc *models.RepoC
 
 // create creates a new environment and returns the environment name, or error
 func (m *Manager) create(ctx context.Context, rd *models.RepoRevisionData) (envname string, err error) {
+	parentSpan, ok := getSpanFromContext(ctx)
+	if !ok {
+		return "", errors.New("create: unable to get span from context")
+	}
 	end := m.MC.Timing(mpfx+"create", "triggering_repo:"+rd.Repo)
 	defer func() {
 		end(fmt.Sprintf("success:%v", err == nil))
@@ -437,6 +484,10 @@ func (m *Manager) create(ctx context.Context, rd *models.RepoRevisionData) (envn
 			VarFilePath: v.VarFilePath,
 		}
 	}
+	// Note (mk): Either we manage the build and install span here or we put some duplicate code in
+	// build and install charts to avoid cyclic dependency.
+	chartSpan := tracer.StartSpan("build_and_install_chart", tracer.ChildOf(parentSpan.Context()))
+	defer chartSpan.Finish(tracer.WithError(err))
 	if err = m.CI.BuildAndInstallCharts(ctx, &metahelm.EnvInfo{Env: newenv.env, RC: newenv.rc}, mcloc); err != nil {
 		return "", m.handleMetahelmError(ctx, newenv, err, "error installing charts")
 	}
@@ -446,7 +497,15 @@ func (m *Manager) create(ctx context.Context, rd *models.RepoRevisionData) (envn
 // Delete destroys an environment in k8s and marks it as such in the DB
 func (m *Manager) Delete(ctx context.Context, rd *models.RepoRevisionData, reason models.QADestroyReason) error {
 	var err error
-	err = m.lockingOperation(ctx, "NitroDelete", rd.Repo, strconv.Itoa(int(rd.PullRequest)), func(ctx context.Context) error {
+	err = m.lockingOperation(ctx, "nitro_delete", rd.Repo, strconv.Itoa(int(rd.PullRequest)), func(ctx context.Context) error {
+		// note (mk): is this nonsense?
+		rootSpan, ok := getSpanFromContext(ctx)
+		if !ok {
+			return errors.New("create: unable to get span from context")
+		}
+		enrichSpan(rootSpan, rd)
+		ctx = newSpanContext(ctx, rootSpan)
+
 		return m.delete(ctx, rd, reason)
 	})
 	return err
@@ -535,7 +594,15 @@ func (m *Manager) delete(ctx context.Context, rd *models.RepoRevisionData, reaso
 func (m *Manager) Update(ctx context.Context, rd models.RepoRevisionData) (string, error) {
 	var err error
 	var name string
-	err = m.lockingOperation(ctx, "NitroUpdate", rd.Repo, strconv.Itoa(int(rd.PullRequest)), func(ctx context.Context) error {
+	err = m.lockingOperation(ctx, "nitro_update", rd.Repo, strconv.Itoa(int(rd.PullRequest)), func(ctx context.Context) error {
+		// note (mk): is this nonsense?
+		rootSpan, ok := getSpanFromContext(ctx)
+		if !ok {
+			return errors.New("create: unable to get span from context")
+		}
+		enrichSpan(rootSpan, &rd)
+		ctx = newSpanContext(ctx, rootSpan)
+
 		name, err = m.update(ctx, &rd)
 		return err
 	})

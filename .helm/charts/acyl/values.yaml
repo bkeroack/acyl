@@ -16,8 +16,6 @@ image:
   pullSecret: pull-secret
 app:
   env_limit: '80'
-  newrelic_enabled: true
-  newrelic_app_name: acyl
   disable_tls: true  # required for argo ingress
   helm_chart_to_repo: ''
   deployment_to_repo: ''
@@ -26,7 +24,9 @@ app:
   secrets_from_env: false
   debug_endpoints: true
   consul_server_host: 1.2.3.4
+  datadog_service_name: acyl
   dogstatsd_addr: 1.2.3.4:8125
+  datadog_tracing_agent_addr: 1.2.3.4:8126
   metrics_tags: ''
   amino_addr: foo.bar.com:3000
   furan_addr: "furan"

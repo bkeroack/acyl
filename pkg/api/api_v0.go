@@ -17,7 +17,8 @@ import (
 	"github.com/dollarshaveclub/acyl/pkg/persistence"
 	"github.com/dollarshaveclub/acyl/pkg/spawner"
 	"github.com/gorilla/mux"
-	newrelic "github.com/newrelic/go-agent"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 // API output schema
@@ -69,27 +70,25 @@ func v0QAEnvironmentFromQAEnvironment(qae *models.QAEnvironment) *v0QAEnvironmen
 
 type v0api struct {
 	apiBase
-	dl    persistence.DataLayer
-	ge    *ghevent.GitHubEventWebhook
-	es    spawner.EnvironmentSpawner
-	sc    config.ServerConfig
-	nrapp newrelic.Application
+	dl persistence.DataLayer
+	ge *ghevent.GitHubEventWebhook
+	es spawner.EnvironmentSpawner
+	sc config.ServerConfig
 }
 
-func newV0API(dl persistence.DataLayer, ge *ghevent.GitHubEventWebhook, es spawner.EnvironmentSpawner, sc config.ServerConfig, nrapp newrelic.Application, logger *stdlog.Logger) (*v0api, error) {
+func newV0API(dl persistence.DataLayer, ge *ghevent.GitHubEventWebhook, es spawner.EnvironmentSpawner, sc config.ServerConfig, logger *stdlog.Logger) (*v0api, error) {
 	return &v0api{
 		apiBase: apiBase{
 			logger: logger,
 		},
-		dl:    dl,
-		ge:    ge,
-		es:    es,
-		sc:    sc,
-		nrapp: nrapp,
+		dl: dl,
+		ge: ge,
+		es: es,
+		sc: sc,
 	}, nil
 }
 
-func (api *v0api) register(r *mux.Router) error {
+func (api *v0api) register(r *muxtrace.Router) error {
 	if r == nil {
 		return fmt.Errorf("router is nil")
 	}
@@ -125,32 +124,32 @@ var MaxAsyncActionTimeout = 30 * time.Minute
 func (api *v0api) githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var err error
-	txn := api.nrapp.StartTransaction("WebhookHandler", w, r)
-	defer txn.End()
+	rootSpan := tracer.StartSpan("github_webhook_handler")
+	defer rootSpan.Finish(tracer.WithError(err))
 	defer func() {
 		if err != nil {
 			api.logger.Printf("webhook handler error: %v", err)
 		}
 	}()
 
-	segment := newrelic.StartSegment(txn, "webhookValidation")
+	span := tracer.StartSpan("github_webhook_handler.validation", tracer.ChildOf(rootSpan.Context()))
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		api.badRequestError(w, err, txn)
+		api.badRequestError(w, err, withSpan(span))
 		return
 	}
 	sig := r.Header.Get("X-Hub-Signature")
 	if sig == "" {
-		api.forbiddenError(w, "X-Hub-Signature missing", txn)
+		api.forbiddenError(w, "X-Hub-Signature missing", withSpan(span))
 		return
 	}
 	out, err := api.ge.New(b, sig)
 	if err != nil {
 		_, bsok := err.(ghevent.BadSignature)
 		if bsok {
-			api.forbiddenError(w, "invalid hub signature", txn)
+			api.forbiddenError(w, "invalid hub signature", withSpan(span))
 		} else {
-			api.badRequestError(w, err, txn)
+			api.badRequestError(w, err, withSpan(span))
 		}
 		return
 	}
@@ -164,17 +163,16 @@ func (api *v0api) githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if out.RRD == nil {
 		log("repo data is nil")
-		api.internalError(w, fmt.Errorf("RepoData is nil (event_log_id: %v)", out.Logger.ID.String()), txn)
+		api.internalError(w, fmt.Errorf("RepoData is nil (event_log_id: %v)", out.Logger.ID.String()), withSpan(span))
 		return
 	}
 	if out.RRD.SourceBranch == "" && out.Action != ghevent.NotRelevant {
-		api.internalError(w, fmt.Errorf("RepoData.SourceBranch has no value (event_log_id: %v)", out.Logger.ID.String()), txn)
+		api.internalError(w, fmt.Errorf("RepoData.SourceBranch has no value (event_log_id: %v)", out.Logger.ID.String()), withSpan(span))
 		return
 	}
 
-	segment.End()
-	segment = newrelic.StartSegment(txn, "webhookAsyncAction")
-	defer segment.End()
+	span.Finish()
+	span = tracer.StartSpan("github_webhook_handler.async_action", tracer.ChildOf(rootSpan.Context()))
 
 	log("starting async processing for %v", out.Action)
 
@@ -195,10 +193,12 @@ func (api *v0api) githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	case ghevent.Update:
 		api.wg.Add(1)
 		go func() {
+			var updateError error
 			defer api.wg.Done()
+			defer span.Finish(tracer.WithError(updateError))
 			ctx, cf := context.WithTimeout(ctx, MaxAsyncActionTimeout)
 			defer cf() // guarantee that any goroutines created with the ctx are cancelled
-			name, err := api.es.Update(ctx, *out.RRD)
+			name, updateError := api.es.Update(ctx, *out.RRD)
 			if err != nil {
 				log("finished processing update with error: %v", err)
 				return
@@ -208,10 +208,12 @@ func (api *v0api) githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 	case ghevent.Destroy:
 		api.wg.Add(1)
 		go func() {
+			var destroyErr error
 			defer api.wg.Done()
+			defer span.Finish(tracer.WithError(destroyErr))
 			ctx, cf := context.WithTimeout(ctx, MaxAsyncActionTimeout)
 			defer cf() // guarantee that any goroutines created with the ctx are cancelled
-			err := api.es.Destroy(ctx, *out.RRD, models.DestroyApiRequest)
+			destroyErr = api.es.Destroy(ctx, *out.RRD, models.DestroyApiRequest)
 			if err != nil {
 				log("finished processing destroy with error: %v", err)
 				return
@@ -220,7 +222,7 @@ func (api *v0api) githubWebhookHandler(w http.ResponseWriter, r *http.Request) {
 		}()
 	default:
 		log("unknown action type: %v", out.Action)
-		api.internalError(w, fmt.Errorf("unknown action type: %v (event_log_id: %v)", out.Action, out.Logger.ID.String()), txn)
+		api.internalError(w, fmt.Errorf("unknown action type: %v (event_log_id: %v)", out.Action, out.Logger.ID.String()), withSpan(span))
 		return
 	}
 
@@ -232,13 +234,10 @@ Accepted:
 }
 
 func (api *v0api) envListHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EnvList", w, r)
-	defer txn.End()
-	segment := newrelic.StartSegment(txn, "GetQAEnvironments")
 	var fullDetails bool
 	envs, err := api.dl.GetQAEnvironments()
 	if err != nil {
-		api.internalError(w, fmt.Errorf("error getting environments: %v", err), txn)
+		api.internalError(w, fmt.Errorf("error getting environments: %v", err))
 		return
 	}
 	if val, ok := r.URL.Query()["full_details"]; ok {
@@ -248,9 +247,6 @@ func (api *v0api) envListHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	segment.End()
-	segment = newrelic.StartSegment(txn, "MarshalQAEnvironments")
-	defer segment.End()
 	var j []byte
 	if fullDetails {
 		output := []v0QAEnvironment{}
@@ -259,7 +255,7 @@ func (api *v0api) envListHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		j, err = json.Marshal(output)
 		if err != nil {
-			api.internalError(w, fmt.Errorf("error marshaling environments: %v", err), txn)
+			api.internalError(w, fmt.Errorf("error marshaling environments: %v", err))
 			return
 		}
 	} else {
@@ -269,7 +265,7 @@ func (api *v0api) envListHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		j, err = json.Marshal(nl)
 		if err != nil {
-			api.internalError(w, fmt.Errorf("error marshaling environments: %v", err), txn)
+			api.internalError(w, fmt.Errorf("error marshaling environments: %v", err))
 			return
 		}
 	}
@@ -278,23 +274,21 @@ func (api *v0api) envListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *v0api) envDetailHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EnvDetail", w, r)
-	defer txn.End()
 	name := mux.Vars(r)["name"]
 	qa, err := api.dl.GetQAEnvironmentConsistently(name)
 	if err != nil {
-		api.internalError(w, fmt.Errorf("error getting environment: %v", err), txn)
+		api.internalError(w, fmt.Errorf("error getting environment: %v", err))
 		return
 	}
 	if qa == nil {
-		api.notfoundError(w, txn)
+		api.notfoundError(w)
 		return
 	}
 
 	output := v0QAEnvironmentFromQAEnvironment(qa)
 	j, err := json.Marshal(output)
 	if err != nil {
-		api.internalError(w, fmt.Errorf("error marshaling environment: %v", err), txn)
+		api.internalError(w, fmt.Errorf("error marshaling environment: %v", err))
 		return
 	}
 	w.Header().Add("Content-Type", "application/json")
@@ -302,89 +296,85 @@ func (api *v0api) envDetailHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *v0api) envDestroyHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EnvDestroy", w, r)
-	defer txn.End()
+	rootSpan := tracer.StartSpan("env_destroy_handler")
+	getEnvSpan := tracer.StartSpan("env_destroy_handler.get_env", tracer.ChildOf(rootSpan.Context()))
 	name := mux.Vars(r)["name"]
 	qa, err := api.dl.GetQAEnvironmentConsistently(name)
 	if err != nil {
-		api.internalError(w, err, txn)
+		api.internalError(w, err, withSpan(getEnvSpan))
+		rootSpan.Finish(tracer.WithError(err))
 		return
 	}
 	if qa == nil {
-		api.notfoundError(w, txn)
+		api.notfoundError(w, withSpan(getEnvSpan))
+		rootSpan.Finish(tracer.WithError(fmt.Errorf("not found")))
 		return
 	}
+	getEnvSpan.Finish()
 	go func() {
 		err := api.es.DestroyExplicitly(context.Background(), qa, models.DestroyApiRequest)
 		if err != nil {
 			api.logger.Printf("error destroying QA: %v: %v", name, err)
 		}
+		rootSpan.Finish(tracer.WithError(err))
 	}()
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (api *v0api) envSuccessHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EnvSuccess", w, r)
-	defer txn.End()
 	name := mux.Vars(r)["name"]
 	err := api.es.Success(context.Background(), name)
 	if err != nil {
-		api.internalError(w, err, txn)
+		api.internalError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (api *v0api) envFailureHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EnvFailure", w, r)
-	defer txn.End()
 	name := mux.Vars(r)["name"]
 	err := api.es.Failure(context.Background(), name, "")
 	if err != nil {
-		api.internalError(w, err, txn)
+		api.internalError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (api *v0api) envEventHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EnvEvent", w, r)
-	defer txn.End()
 	name := mux.Vars(r)["name"]
 	defer r.Body.Close()
 	d := json.NewDecoder(r.Body)
 	event := models.QAEnvironmentEvent{}
 	err := d.Decode(&event)
 	if err != nil {
-		api.badRequestError(w, err, txn)
+		api.badRequestError(w, err)
 		return
 	}
 	err = api.dl.AddEvent(name, event.Message)
 	if err != nil {
-		api.internalError(w, err, txn)
+		api.internalError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (api *v0api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
-	txn := api.nrapp.StartTransaction("EnvSearch", w, r)
-	defer txn.End()
 	qvars := r.URL.Query()
 	if _, ok := qvars["pr"]; ok {
 		if _, ok := qvars["repo"]; !ok {
-			api.badRequestError(w, fmt.Errorf("search by PR requires repo name"), txn)
+			api.badRequestError(w, fmt.Errorf("search by PR requires repo name"))
 			return
 		}
 	}
 	if status, ok := qvars["status"]; ok {
 		if status[0] == "destroyed" && len(qvars) == 1 {
-			api.badRequestError(w, fmt.Errorf("'destroyed' status searches require at least one other search parameter"), txn)
+			api.badRequestError(w, fmt.Errorf("'destroyed' status searches require at least one other search parameter"))
 			return
 		}
 	}
 	if len(qvars) == 0 {
-		api.badRequestError(w, fmt.Errorf("at least one search parameter is required"), txn)
+		api.badRequestError(w, fmt.Errorf("at least one search parameter is required"))
 		return
 	}
 
@@ -392,7 +382,7 @@ func (api *v0api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	for k, vs := range qvars {
 		if len(vs) != 1 {
-			api.badRequestError(w, fmt.Errorf("unexpected value for %v: %v", k, vs), txn)
+			api.badRequestError(w, fmt.Errorf("unexpected value for %v: %v", k, vs))
 			return
 		}
 		v := vs[0]
@@ -402,7 +392,7 @@ func (api *v0api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
 		case "pr":
 			pr, err := strconv.Atoi(v)
 			if err != nil || pr < 1 {
-				api.badRequestError(w, fmt.Errorf("bad PR number"), txn)
+				api.badRequestError(w, fmt.Errorf("bad PR number"))
 				return
 			}
 			ops.Pr = uint(pr)
@@ -415,7 +405,7 @@ func (api *v0api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
 		case "status":
 			s, err := models.EnvironmentStatusFromString(v)
 			if err != nil {
-				api.badRequestError(w, fmt.Errorf("unknown status"), txn)
+				api.badRequestError(w, fmt.Errorf("unknown status"))
 				return
 			}
 			ops.Status = s
@@ -423,7 +413,7 @@ func (api *v0api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	qas, err := api.dl.Search(ops)
 	if err != nil {
-		api.internalError(w, fmt.Errorf("error searching in DB: %v", err), txn)
+		api.internalError(w, fmt.Errorf("error searching in DB: %v", err))
 	}
 	w.Header().Add("Content-Type", "application/json")
 	if len(qas) == 0 {
@@ -437,7 +427,7 @@ func (api *v0api) envSearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	j, err := json.Marshal(output)
 	if err != nil {
-		api.internalError(w, fmt.Errorf("error marshaling environments: %v", err), txn)
+		api.internalError(w, fmt.Errorf("error marshaling environments: %v", err))
 		return
 	}
 	w.Write(j)

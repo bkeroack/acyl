@@ -9,7 +9,7 @@ import (
 
 	"github.com/dollarshaveclub/acyl/pkg/config"
 	"github.com/dollarshaveclub/acyl/pkg/testhelper/testdatalayer"
-	"github.com/gorilla/mux"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
 func TestAPIv2SearchByTrackingRef(t *testing.T) {
@@ -19,9 +19,7 @@ func TestAPIv2SearchByTrackingRef(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv2, err := newV2API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv2, err := newV2API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
@@ -51,16 +49,14 @@ func TestAPIv2EnvDetails(t *testing.T) {
 	}
 	defer tdl.TearDown()
 
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv2, err := newV2API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv2, err := newV2API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
 
 	authMiddleware.apiKeys = []string{"foo"}
 
-	r := mux.NewRouter()
+	r := muxtrace.NewRouter()
 	apiv2.register(r)
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -97,14 +93,14 @@ func TestAPIv2HealthCheck(t *testing.T) {
 	}
 	defer tdl.TearDown()
 
-	apiv2, err := newV2API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nil, testlogger)
+	apiv2, err := newV2API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
 
 	authMiddleware.apiKeys = []string{"foo"}
 
-	r := mux.NewRouter()
+	r := muxtrace.NewRouter()
 	apiv2.register(r)
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -141,16 +137,14 @@ func TestAPIv2EventLog(t *testing.T) {
 	}
 	defer tdl.TearDown()
 
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv2, err := newV2API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv2, err := newV2API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
 
 	authMiddleware.apiKeys = []string{"foo"}
 
-	r := mux.NewRouter()
+	r := muxtrace.NewRouter()
 	apiv2.register(r)
 	ts := httptest.NewServer(r)
 	defer ts.Close()

@@ -1135,6 +1135,14 @@
   version = "v2.0.1"
 
 [[projects]]
+  digest = "1:210286d0cb60ffe28f1ca00b664029e8943009f95d06d8f8c336301b28e1aee5"
+  name = "github.com/philhofer/fwd"
+  packages = ["."]
+  pruneopts = ""
+  revision = "bb6d471dc95d4fe11e432687f8b70ff496cf3136"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:b1df71d0b2287062b90c6b4c8d3c934440aa0d2eb201d03f22be0f045860b4aa"
   name = "github.com/pierrec/lz4"
   packages = [
@@ -1285,6 +1293,14 @@
   pruneopts = ""
   revision = "a5dbd03a2245d554160e3ae6bfdcf969fe58b431"
   version = "0.2.0"
+
+[[projects]]
+  digest = "1:23ed2a28cfc147d46f7fbf4d85f83f6d659e15eac4ad1c16c4d32b19da5bd2fa"
+  name = "github.com/tinylib/msgp"
+  packages = ["msgp"]
+  pruneopts = ""
+  revision = "af6442a0fcf6e2a1b824f70dd0c734f01e817751"
+  version = "v1.1.0"
 
 [[projects]]
   digest = "1:3f86e5e877dde45a8c767ba92f1526b41d1daa756f07e217db3177d23c54bbc5"
@@ -1567,6 +1583,22 @@
   pruneopts = ""
   revision = "d11072e7ca9811b1100b80ca0269ac831f06d024"
   version = "v1.11.3"
+
+[[projects]]
+  digest = "1:8e7e862affe62ca299b3c4acfb6bfcbc156a28f16592eca50aa81e46f3f8816f"
+  name = "gopkg.in/DataDog/dd-trace-go.v1"
+  packages = [
+    "contrib/gorilla/mux",
+    "contrib/internal/httputil",
+    "contrib/internal/lists",
+    "ddtrace",
+    "ddtrace/ext",
+    "ddtrace/internal",
+    "ddtrace/tracer",
+  ]
+  pruneopts = ""
+  revision = "823d51722f66a748804943f6fa6be18776073b82"
+  version = "v1.9.0"
 
 [[projects]]
   branch = "v1"
@@ -2195,6 +2227,8 @@
     "golang.org/x/sync/errgroup",
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
+    "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux",
+    "gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer",
     "gopkg.in/check.v1",
     "gopkg.in/jfontan/go-billy-desfacer.v0",
     "gopkg.in/src-d/go-billy.v4",

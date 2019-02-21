@@ -39,6 +39,7 @@ import (
 	newrelic "github.com/newrelic/go-agent"
 	"github.com/nlopes/slack"
 	"github.com/spf13/cobra"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 )
 
@@ -95,8 +96,6 @@ func init() {
 	serverCmd.PersistentFlags().StringVar(&aminoConfig.AminoDeploymentToRepoRaw, "deployment-to-repo", "{}", "Mapping of Amino deployments to Github repo")
 	serverCmd.PersistentFlags().StringVar(&aminoConfig.AminoJobToRepoRaw, "job-to-repo", "{}", "Mapping of Amino jobs to Github repo")
 	serverCmd.PersistentFlags().StringVar(&serverConfig.HostnameTemplate, "hostname-template", "{{ .Name }}.qa.shave.io", "Environment hostname")
-	serverCmd.PersistentFlags().StringVar(&serverConfig.NewRelicApp, "newrelic-app", "acyl", "New Relic application name")
-	serverCmd.PersistentFlags().BoolVar(&serverConfig.EnableNewRelic, "enable-newrelic", true, "Enable New Relic APM")
 	serverCmd.PersistentFlags().BoolVar(&serverConfig.DebugEndpoints, "debug-endpoints", false, "Enable debugging HTTP endpoints (pprof)")
 	serverCmd.PersistentFlags().StringArrayVar(&serverConfig.DebugEndpointsIPWhitelists, "debug-endpoints-ip-whitelists", []string{"10.10.0.0/16"}, "IP CIDR ranges to allow access to debug endpoints")
 	serverCmd.PersistentFlags().BoolVar(&serverConfig.NitroFeatureFlag, "enable-nitro", false, "Use Nitro environment engine (EXPERIMENTAL)")
@@ -128,19 +127,23 @@ func loadFailureTemplate(m *nitroenv.Manager) {
 	}
 }
 
+func startDatadogTracer() {
+	opts := []tracer.StartOption{tracer.WithAgentAddr(datadogTracingAgentAddr)}
+	opts = append(opts, tracer.WithServiceName(datadogServiceName))
+	for _, tag := range strings.Split(dogstatsdTags, ",") {
+		keyValPair := strings.Split(tag, ":")
+		if len(keyValPair) != 2 {
+			log.Fatalf("invalid tags: %v", dogstatsdTags)
+		}
+		key, val := keyValPair[0], keyValPair[1]
+		opts = append(opts, tracer.WithGlobalTag(key, val))
+	}
+	tracer.Start(opts...)
+}
+
 func server(cmd *cobra.Command, args []string) {
 	var err error
-	var nrapp newrelic.Application
-	var nrconfig newrelic.Config
-	if serverConfig.EnableNewRelic {
-		nrconfig = newrelic.NewConfig(serverConfig.NewRelicApp, serverConfig.NewRelicAPIKey)
-		nrapp, err = newrelic.NewApplication(nrconfig)
-		if err != nil {
-			log.Fatalf("error setting up new relic: %v", err)
-		}
-	} else {
-		nrapp = nullNewRelicApp{}
-	}
+	nrapp := nullNewRelicApp{}
 
 	mc, err := metrics.NewDatadogCollector(dogstatsdAddr, logger)
 	if err != nil {
@@ -248,7 +251,6 @@ func server(cmd *cobra.Command, args []string) {
 			MC:                   nmc,
 			NG:                   ng,
 			LP:                   lp,
-			NRApp:                nrapp,
 			FS:                   fs,
 			MG:                   mg,
 			CI:                   ci,
@@ -301,13 +303,14 @@ func server(cmd *cobra.Command, args []string) {
 	server := &http.Server{Addr: addr, TLSConfig: tlsconfig}
 
 	httpapi := api.NewDispatcher(server)
+	apiServiceName := strings.Join([]string{datadogServiceName, "http"}, ".")
 	deps := &api.Dependencies{
 		DataLayer:          dl,
 		GitHubEventWebhook: ge,
 		EnvironmentSpawner: envspawner,
 		ServerConfig:       serverConfig,
-		NRApplication:      nrapp,
 		Logger:             logger,
+		DatadogServiceName: apiServiceName,
 	}
 	regops := []api.RegisterOption{api.WithAPIKeys(serverConfig.APIKeys)}
 	if serverConfig.DebugEndpoints {
@@ -328,6 +331,7 @@ func server(cmd *cobra.Command, args []string) {
 		stype = "HTTP"
 	}
 
+	startDatadogTracer()
 	logger.Printf("%v REST listening on: %v", stype, addr)
 	if serverConfig.DisableTLS {
 		logger.Println(server.ListenAndServe())
@@ -338,9 +342,11 @@ func server(cmd *cobra.Command, args []string) {
 	httpapi.WaitForHandlers()
 	logger.Printf("waiting for async goroutines to finish...")
 	httpapi.WaitForAsync()
+	tracer.Stop()
 	logger.Printf("done, terminating")
 }
 
+// Todo (mk): Remove this and all references to New Relic once we deprecate amino.
 // nullNewRelicApp conforms to the newrelic.Application interface but does nothing
 type nullNewRelicApp struct {
 }

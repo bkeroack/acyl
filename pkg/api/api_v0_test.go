@@ -10,11 +10,8 @@ import (
 	"testing"
 
 	"github.com/dollarshaveclub/acyl/pkg/config"
-	"github.com/dollarshaveclub/acyl/pkg/mocks"
 	"github.com/dollarshaveclub/acyl/pkg/testhelper/testdatalayer"
-	"github.com/golang/mock/gomock"
-	"github.com/gorilla/mux"
-	newrelic "github.com/newrelic/go-agent"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
 const (
@@ -23,16 +20,6 @@ const (
 
 var testlogger = log.New(ioutil.Discard, "", log.LstdFlags)
 
-func getHTTPMockNewRelicAndLogger(t *testing.T) (newrelic.Application, *gomock.Controller) {
-	ctrl := gomock.NewController(t)
-	txn := mocks.NewMockTransaction(ctrl)
-	txn.EXPECT().End().AnyTimes()
-	txn.EXPECT().NoticeError(gomock.Any()).AnyTimes()
-	nrapp := mocks.NewMockApplication(ctrl)
-	nrapp.EXPECT().StartTransaction(gomock.Any(), gomock.Any(), gomock.Any()).Return(txn).AnyTimes()
-	return nrapp, ctrl
-}
-
 func TestAPIv0SearchSimple(t *testing.T) {
 	dl, tdl := testdatalayer.New(testlogger, t)
 	if err := tdl.Setup(testDataPath); err != nil {
@@ -40,9 +27,7 @@ func TestAPIv0SearchSimple(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating apiv0: %v", err)
 	}
@@ -69,9 +54,7 @@ func TestAPIv0SearchComplex(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating apiv0: %v", err)
 	}
@@ -98,9 +81,7 @@ func TestAPIv0SearchBadPROnly(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating apiv0: %v", err)
 	}
@@ -119,9 +100,7 @@ func TestAPIv0SearchNotFound(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating apiv0: %v", err)
 	}
@@ -143,9 +122,7 @@ func TestAPIv0SearchEmptyQuery(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating apiv0: %v", err)
 	}
@@ -164,9 +141,7 @@ func TestAPIv0SearchBadStatusOnly(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating apiv0: %v", err)
 	}
@@ -185,9 +160,7 @@ func TestAPIv0SearchSuccessOnly(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating apiv0: %v", err)
 	}
@@ -205,16 +178,14 @@ func TestAPIv0EnvDetails(t *testing.T) {
 		t.Fatalf("error setting up test database: %v", err)
 	}
 	defer tdl.TearDown()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv0, err := newV0API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
 
 	authMiddleware.apiKeys = []string{"foo"}
 
-	r := mux.NewRouter()
+	r := muxtrace.NewRouter()
 	apiv0.register(r)
 	ts := httptest.NewServer(r)
 	defer ts.Close()

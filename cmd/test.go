@@ -43,8 +43,8 @@ var configTestCmd = &cobra.Command{
 	Use:   "test",
 	Short: "test an acyl.yml",
 	Long: `Test an acyl.yaml configuration by creating or updating an environment in the Kubernetes cluster pointed to be the current kubeconfig context according to acyl.yml in the current directory.
-The kubeconfig context must have ClusterAdmin privileges. 
-	
+The kubeconfig context must have ClusterAdmin privileges.
+
 Branch matching will use the currently checked-out branch and the value passed in for the base-branch flag.
 
 Paths provided by --search-paths will be recursively searched for valid git repositories containing GitHub remotes,
@@ -71,7 +71,7 @@ The following image build modes are available:
 
 - "none": Do not run builds. This means that all image tags must already exist in their respective image repositories or the environment will fail.
 - "furan://<host>:<port>": Use a remote Furan server to build images. Furan only has access to repository revisions that exist in GitHub, if a build references a commit that hasn't been pushed the build will fail.
-- "docker": Use a Docker Engine to build and push images, configured by environment variables: https://docs.docker.com/engine/reference/commandline/cli/#environment-variables . 
+- "docker": Use a Docker Engine to build and push images, configured by environment variables: https://docs.docker.com/engine/reference/commandline/cli/#environment-variables .
 - "docker-nopush": Use a Docker Enginer to build images, but do not push them. This is useful if the Docker Engine is also used by the Kubernetes cluster, where there is no need to push the images to a remote repository.
 `,
 	Run: configTestCreate,
@@ -378,10 +378,9 @@ func testConfigSetup() (*nitroenv.Manager, context.Context, *models.RepoRevision
 					return lch
 				},
 			},
-			NRApp: &nullNewRelicApp{},
-			FS:    fs,
-			MG:    mg,
-			CI:    ci,
+			FS: fs,
+			MG: mg,
+			CI: ci,
 		}, ctx, &models.RepoRevisionData{
 			PullRequest:  testEnvCfg.pullRequest,
 			Repo:         ri.GitHubRepoName,

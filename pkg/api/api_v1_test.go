@@ -11,7 +11,7 @@ import (
 
 	"github.com/dollarshaveclub/acyl/pkg/config"
 	"github.com/dollarshaveclub/acyl/pkg/testhelper/testdatalayer"
-	"github.com/gorilla/mux"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
 func TestAPIv1SearchSimple(t *testing.T) {
@@ -21,9 +21,7 @@ func TestAPIv1SearchSimple(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
@@ -55,16 +53,14 @@ func TestAPIv1EnvDetails(t *testing.T) {
 	}
 	defer tdl.TearDown()
 
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
 
 	authMiddleware.apiKeys = []string{"foo"}
 
-	r := mux.NewRouter()
+	r := muxtrace.NewRouter()
 	apiv1.register(r)
 	ts := httptest.NewServer(r)
 	defer ts.Close()
@@ -106,9 +102,7 @@ func TestAPIv1RecentDefault(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
@@ -143,9 +137,7 @@ func TestAPIv1RecentEmpty(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
@@ -172,9 +164,7 @@ func TestAPIv1RecentBadValue(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
@@ -193,9 +183,7 @@ func TestAPIv1RecentNegativeValue(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
@@ -214,9 +202,7 @@ func TestAPIv1RecentTwoDays(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
@@ -243,9 +229,7 @@ func TestAPIv1RecentFiveDays(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}
@@ -272,9 +256,7 @@ func TestAPIv1RecentIncludeDestroyed(t *testing.T) {
 	}
 	defer tdl.TearDown()
 	rc := httptest.NewRecorder()
-	nrapp, ctrl := getHTTPMockNewRelicAndLogger(t)
-	defer ctrl.Finish()
-	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, nrapp, testlogger)
+	apiv1, err := newV1API(dl, nil, nil, config.ServerConfig{APIKeys: []string{"foo"}}, testlogger)
 	if err != nil {
 		t.Fatalf("error creating api: %v", err)
 	}

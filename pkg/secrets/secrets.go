@@ -16,7 +16,6 @@ const (
 	awsSecretAccessKeyid = "aws/secret_access_key"
 	githubHookSecretid   = "github/hook_secret"
 	githubTokenid        = "github/token"
-	newRelicKeyid        = "newrelic/api_key"
 	apiKeysid            = "api_keys"
 	slackTokenid         = "slack/token"
 	tlsCertid            = "tls/cert"
@@ -120,11 +119,6 @@ func (psf *PVCSecretsFetcher) PopulateServer(srv *config.ServerConfig) error {
 		return errors.Wrap(err, "error getting API keys")
 	}
 	srv.APIKeys = strings.Split(string(s), ",")
-	s, err = psf.sc.Get(newRelicKeyid)
-	if err != nil {
-		return errors.Wrap(err, "error getting NewRelic API key")
-	}
-	srv.NewRelicAPIKey = string(s)
 	if !srv.DisableTLS {
 		s, err = psf.sc.Get(tlsCertid)
 		if err != nil {

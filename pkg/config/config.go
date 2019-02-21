@@ -22,9 +22,7 @@ type ServerConfig struct {
 	EventRateLimitPerSecond    uint
 	GlobalEnvironmentLimit     uint
 	HostnameTemplate           string
-	EnableNewRelic             bool
-	NewRelicAPIKey             string
-	NewRelicApp                string
+	DatadogServiceName         string
 	DebugEndpoints             bool
 	DebugEndpointsIPWhitelists []string
 	NitroFeatureFlag           bool

@@ -11,8 +11,8 @@ import (
 	"github.com/dollarshaveclub/acyl/pkg/ghevent"
 	"github.com/dollarshaveclub/acyl/pkg/persistence"
 	"github.com/dollarshaveclub/acyl/pkg/spawner"
-	"github.com/gorilla/mux"
-	newrelic "github.com/newrelic/go-agent"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 type apiBase struct {
@@ -20,29 +20,66 @@ type apiBase struct {
 	wg     sync.WaitGroup
 }
 
-func (api *apiBase) httpError(w http.ResponseWriter, code int, err error, txn newrelic.Transaction) {
+type ErrorResponseConfig struct {
+	Span tracer.Span
+	Code int
+}
+
+type ErrorResponseOption func(*ErrorResponseConfig)
+
+func withSpan(span tracer.Span) ErrorResponseOption {
+	return func(cfg *ErrorResponseConfig) {
+		cfg.Span = span
+	}
+}
+
+func withCode(code int) ErrorResponseOption {
+	return func(cfg *ErrorResponseConfig) {
+		cfg.Code = code
+	}
+}
+
+func (api *apiBase) httpError(w http.ResponseWriter, err error, options ...ErrorResponseOption) {
+	var config ErrorResponseConfig
+	for _, fn := range options {
+		fn(&config)
+	}
+
+	if config.Code == 0 {
+		config.Code = http.StatusInternalServerError
+	}
 	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(code)
+	w.WriteHeader(config.Code)
 	msg := fmt.Sprintf(`{"error_details":"%v"}`, err)
 	w.Write([]byte(msg))
 	api.logger.Println(msg)
-	txn.NoticeError(err)
+	if config.Span != nil {
+		config.Span.Finish(tracer.WithError(err))
+	}
 }
 
-func (api *apiBase) badRequestError(w http.ResponseWriter, err error, txn newrelic.Transaction) {
-	api.httpError(w, http.StatusBadRequest, err, txn)
+func (api *apiBase) badRequestError(w http.ResponseWriter, err error, options ...ErrorResponseOption) {
+	opts := []ErrorResponseOption{withCode(http.StatusBadRequest)}
+	opts = append(opts, options...)
+	api.httpError(w, err, opts...)
 }
 
-func (api *apiBase) internalError(w http.ResponseWriter, err error, txn newrelic.Transaction) {
-	api.httpError(w, http.StatusInternalServerError, err, txn)
+func (api *apiBase) internalError(w http.ResponseWriter, err error, options ...ErrorResponseOption) {
+	opts := []ErrorResponseOption{withCode(http.StatusInternalServerError)}
+	opts = append(opts, options...)
+	api.httpError(w, err, opts...)
 }
 
-func (api *apiBase) notfoundError(w http.ResponseWriter, txn newrelic.Transaction) {
-	api.httpError(w, http.StatusNotFound, fmt.Errorf("not found"), txn)
+func (api *apiBase) notfoundError(w http.ResponseWriter, options ...ErrorResponseOption) {
+	opts := []ErrorResponseOption{withCode(http.StatusNotFound)}
+	opts = append(opts, options...)
+	api.httpError(w, fmt.Errorf("not found"), opts...)
 }
 
-func (api *apiBase) forbiddenError(w http.ResponseWriter, msg string, txn newrelic.Transaction) {
-	api.httpError(w, http.StatusForbidden, fmt.Errorf("forbidden: %v", msg), txn)
+func (api *apiBase) forbiddenError(w http.ResponseWriter, msg string, options ...ErrorResponseOption) {
+	opts := []ErrorResponseOption{withCode(http.StatusForbidden)}
+	opts = append(opts, options...)
+	api.httpError(w, fmt.Errorf("forbidden: %v", msg), opts...)
 }
 
 // Dependencies are the dependencies required for the API
@@ -51,7 +88,7 @@ type Dependencies struct {
 	GitHubEventWebhook *ghevent.GitHubEventWebhook
 	EnvironmentSpawner spawner.EnvironmentSpawner
 	ServerConfig       config.ServerConfig
-	NRApplication      newrelic.Application
+	DatadogServiceName string
 	Logger             *log.Logger
 }
 
@@ -127,10 +164,10 @@ func (d *Dispatcher) RegisterVersions(deps *Dependencies, ro ...RegisterOption) 
 	authMiddleware.apiKeys = ropts.apiKeys
 	ipWhitelistMiddleware.ipwl = ropts.ipWhitelist
 
-	r := mux.NewRouter()
+	r := muxtrace.NewRouter(muxtrace.WithServiceName(deps.DatadogServiceName))
 	r.HandleFunc("/health", d.healthHandler).Methods("GET")
 
-	apiv0, err := newV0API(deps.DataLayer, deps.GitHubEventWebhook, deps.EnvironmentSpawner, deps.ServerConfig, deps.NRApplication, deps.Logger)
+	apiv0, err := newV0API(deps.DataLayer, deps.GitHubEventWebhook, deps.EnvironmentSpawner, deps.ServerConfig, deps.Logger)
 	if err != nil {
 		return fmt.Errorf("error creating api v0: %v", err)
 	}
@@ -140,7 +177,7 @@ func (d *Dispatcher) RegisterVersions(deps *Dependencies, ro ...RegisterOption) 
 	}
 	d.waitgroups = append(d.waitgroups, &apiv0.wg)
 
-	apiv1, err := newV1API(deps.DataLayer, deps.GitHubEventWebhook, deps.EnvironmentSpawner, deps.ServerConfig, deps.NRApplication, deps.Logger)
+	apiv1, err := newV1API(deps.DataLayer, deps.GitHubEventWebhook, deps.EnvironmentSpawner, deps.ServerConfig, deps.Logger)
 	if err != nil {
 		return fmt.Errorf("error creating api v1: %v", err)
 	}
@@ -150,7 +187,7 @@ func (d *Dispatcher) RegisterVersions(deps *Dependencies, ro ...RegisterOption) 
 	}
 	d.waitgroups = append(d.waitgroups, &apiv1.wg)
 
-	apiv2, err := newV2API(deps.DataLayer, deps.GitHubEventWebhook, deps.EnvironmentSpawner, deps.ServerConfig, deps.NRApplication, deps.Logger)
+	apiv2, err := newV2API(deps.DataLayer, deps.GitHubEventWebhook, deps.EnvironmentSpawner, deps.ServerConfig, deps.Logger)
 	if err != nil {
 		return fmt.Errorf("error creating api v2: %v", err)
 	}

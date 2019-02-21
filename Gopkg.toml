@@ -84,7 +84,7 @@
 [[constraint]]
   branch = "v2"
   name = "gopkg.in/yaml.v2"
-  
+
 # transitive dep of k8s 1.13
 [[override]]
   name = "gopkg.in/square/go-jose.v2"
@@ -143,3 +143,7 @@
   source = "github.com/bkeroackdsc/go-billy-desfacer"
   # branch = "fix-unimplemented-file-lock"
   revision = "e5f0f2cddac159d8ee95b2acb1b80a18e4a1299e"
+
+[[constraint]]
+  name = "gopkg.in/DataDog/dd-trace-go.v1"
+  version = "1.9.0"

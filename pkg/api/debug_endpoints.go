@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http/pprof"
 
-	"github.com/gorilla/mux"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
 )
 
 type debugEndpoints struct {
@@ -14,7 +14,7 @@ func newDebugEndpoints() *debugEndpoints {
 	return &debugEndpoints{}
 }
 
-func (de *debugEndpoints) register(r *mux.Router) error {
+func (de *debugEndpoints) register(r *muxtrace.Router) error {
 	if r == nil {
 		return fmt.Errorf("router is nil")
 	}

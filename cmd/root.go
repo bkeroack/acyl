@@ -18,6 +18,7 @@ var awsConfig config.AWSConfig
 var secretsConfig config.SecretsConfig
 var secretsbackend string
 var dogstatsdAddr, dogstatsdTags string
+var datadogServiceName, datadogTracingAgentAddr string
 
 var RootCmd = &cobra.Command{
 	Use:   "acyl",
@@ -41,6 +42,8 @@ func init() {
 	RootCmd.PersistentFlags().UintVarP(&awsConfig.MaxRetries, "aws-max-retries", "l", 3, "AWS max retries per operation")
 	RootCmd.PersistentFlags().StringVarP(&dogstatsdAddr, "dogstatsd-addr", "q", "127.0.0.1:8125", "Address of dogstatsd for metrics")
 	RootCmd.PersistentFlags().StringVar(&dogstatsdTags, "dogstatsd-tags", "", "Comma-separated list of tags to add to dogstatsd metrics (TAG:VALUE)")
+	RootCmd.PersistentFlags().StringVar(&datadogTracingAgentAddr, "datadog-tracing-agent-addr", "127.0.0.1:8126", "Address of datadog tracing agent")
+	RootCmd.PersistentFlags().StringVar(&datadogServiceName, "datadog-service-name", "acyl", "Default service name to be used for Datadog APM")
 	RootCmd.PersistentFlags().StringVar(&secretsbackend, "secrets-backend", "vault", "Secret backend (one of: vault,env)")
 	RootCmd.PersistentFlags().StringVar(&secretsConfig.Mapping, "secrets-mapping", "", "Secrets mapping template string (required)")
 }
