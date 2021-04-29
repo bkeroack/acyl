@@ -212,6 +212,42 @@ func (p *PGLayer) DeleteQAEnvironment(ctx context.Context, name string) (err err
 	return txn.Commit()
 }
 
+// RenameQAEnvironment renames a QA environment record.
+func (p *PGLayer) RenameQAEnvironment(ctx context.Context, name, newName string) (qae *QAEnvironment, err error) {
+	if isCancelled(ctx) {
+		return nil, errors.Wrap(ctx.Err(), "error renaming qa environment")
+	}
+	txn, err := p.db.Begin()
+	if err != nil {
+		return nil, errors.Wrap(err, "error beginning txn")
+	}
+	defer func() {
+		if err != nil {
+			txn.Rollback()
+		}
+	}()
+	q := `UPDATE kubernetes_environments SET env_name = $2 WHERE env_name = $1;`
+	_, err = txn.ExecContext(ctx, q, name, newName)
+	if err != nil {
+		return nil, errors.Wrap(err, "error renaming environment within kubernetes_environments")
+	}
+	q = `UPDATE helm_releases SET env_name = $2 WHERE env_name = $1;`
+	_, err = txn.ExecContext(ctx, q, name, newName)
+	if err != nil {
+		return nil, errors.Wrap(err, "error renaming environment within helm_releases")
+	}
+	q = `UPDATE qa_environments SET name = $2 WHERE name = $1;`
+	_, err = txn.ExecContext(ctx, q, name, newName)
+	if err != nil {
+		return nil, errors.Wrap(err, "error renaming qa environment within main table")
+	}
+	err = txn.Commit()
+	if err != nil {
+		return nil, errors.Wrap(ctx.Err(), "error renaming qa environment")
+	}
+	return p.GetQAEnvironment(ctx, newName)
+}
+
 // GetQAEnvironmentsByStatus gets all environmens matching status. TODO(geoffrey): Revisit raw_status with @benjamen
 func (p *PGLayer) GetQAEnvironmentsByStatus(ctx context.Context, status string) ([]QAEnvironment, error) {
 	if isCancelled(ctx) {

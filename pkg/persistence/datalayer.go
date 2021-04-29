@@ -20,6 +20,7 @@ type DataLayer interface {
 	GetQAEnvironmentConsistently(context.Context, string) (*QAEnvironment, error)
 	GetQAEnvironments(context.Context) ([]QAEnvironment, error)
 	DeleteQAEnvironment(context.Context, string) error
+	RenameQAEnvironment(context.Context, string, string) (*QAEnvironment, error)
 	GetQAEnvironmentsByStatus(ctx context.Context, status string) ([]QAEnvironment, error)
 	GetRunningQAEnvironments(context.Context) ([]QAEnvironment, error)
 	GetQAEnvironmentsByRepoAndPR(context.Context, string, uint) ([]QAEnvironment, error)

@@ -259,6 +259,35 @@ func (fdl *FakeDataLayer) DeleteQAEnvironment(ctx context.Context, name string) 
 	return nil
 }
 
+func (fdl *FakeDataLayer) RenameQAEnvironment(ctx context.Context, name, newName string) (*QAEnvironment, error) {
+	if isCancelled(ctx) {
+		return nil, ctx.Err()
+	}
+	fdl.doDelay()
+	fdl.data.Lock()
+	defer fdl.data.Unlock()
+	if qa, ok := fdl.data.d[name]; ok {
+		qa.Name = newName
+		fdl.data.d[newName] = qa
+		delete(fdl.data.d, name)
+	} else {
+		return nil, errors.New("env not found")
+	}
+	if ke, ok := fdl.data.k8s[name]; ok {
+		ke.EnvName = newName
+		fdl.data.k8s[newName] = ke
+		delete(fdl.data.k8s, name)
+	}
+	if hr, ok := fdl.data.helm[name]; ok {
+		for i := range hr {
+			hr[i].EnvName = newName
+		}
+		fdl.data.helm[newName] = hr
+		delete(fdl.data.helm, name)
+	}
+	return fdl.GetQAEnvironment(ctx, newName)
+}
+
 func (fdl *FakeDataLayer) GetQAEnvironmentsByStatus(ctx context.Context, status string) ([]QAEnvironment, error) {
 	if isCancelled(ctx) {
 		return nil, ctx.Err()
