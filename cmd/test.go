@@ -163,7 +163,12 @@ func init() {
 		log.Printf("warning: no valid data directory found (tried: %v); using ~/.acyl", defaultDataDirs)
 		defaultDataDir = filepath.Join(hd, ".acyl")
 	}
-	configTestCmd.PersistentFlags().StringVar(&testEnvCfg.wordnetpath, "wordnet-file", filepath.Join(defaultDataDir, "acyl", "words.json.gz"), "path to wordnet file for name generation")
+	// prefer wordnet file within this working directory tree if it exists
+	wnfpath := filepath.Join(wd, "data", "words.json.gz")
+	if _, err := os.Stat(wnfpath); err != nil {
+		wnfpath = filepath.Join(defaultDataDir, "acyl", "words.json.gz")
+	}
+	configTestCmd.PersistentFlags().StringVar(&testEnvCfg.wordnetpath, "wordnet-file", wnfpath, "path to wordnet file for name generation")
 	// prefer assets within this working directory if they exist
 	uiAssetsPath := filepath.Join(wd, "ui")
 	if _, err := os.Stat(uiAssetsPath); err != nil {
