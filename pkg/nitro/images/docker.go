@@ -43,7 +43,7 @@ func (dbb *DockerBuilderBackend) log(ctx context.Context, msg string, args ...in
 }
 
 // BuildImage synchronously builds and optionally pushes the image using the Docker Engine, returning when the build completes.
-func (dbb *DockerBuilderBackend) BuildImage(ctx context.Context, envName, githubRepo, imageRepo, ref string, ops BuildOptions) error {
+func (dbb *DockerBuilderBackend) BuildImage(ctx context.Context, envName, depName, githubRepo, imageRepo, ref string, ops BuildOptions) error {
 	if dbb.DC == nil {
 		return errors.New("docker client is nil")
 	}

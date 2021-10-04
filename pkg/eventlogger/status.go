@@ -5,6 +5,7 @@ import (
 
 	"github.com/dollarshaveclub/acyl/pkg/models"
 	"github.com/dollarshaveclub/metahelm/pkg/metahelm"
+	guuid "github.com/gofrs/uuid"
 )
 
 // SetNewStatus creates a new empty event status of etype with only config.type, config.status and config.started set. This is intended to be called first and prior to config processing.
@@ -94,6 +95,13 @@ func (l *Logger) SetK8sNamespace(ns string) {
 func (l *Logger) SetImageStarted(name string) {
 	if err := l.DL.SetEventStatusImageStarted(l.ID, name); err != nil {
 		l.Printf("error setting image status to started: %v: %v", name, err)
+	}
+}
+
+// SetImageBuildID sets the Furan image build ID
+func (l *Logger) SetImageBuildID(name string, furanBuildID guuid.UUID) {
+	if err := l.DL.SetEventStatusImageBuildID(l.ID, name, furanBuildID); err != nil {
+		l.Printf("error setting image build id: %v: %v", name, err)
 	}
 }
 

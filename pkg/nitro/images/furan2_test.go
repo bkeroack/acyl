@@ -50,6 +50,14 @@ func (ffs *FakeFuran2Server) ListBuilds(context.Context, *furanrpc.ListBuildsReq
 	return &furanrpc.ListBuildsResponse{}, nil
 }
 
+func (ffs *FakeFuran2Server) GetBuildEvents(_ context.Context, req *furanrpc.BuildStatusRequest) (*furanrpc.BuildEventsResponse, error) {
+	return &furanrpc.BuildEventsResponse{
+		BuildId:      req.BuildId,
+		CurrentState: furanrpc.BuildState_SUCCESS,
+		Messages:     []string{"foo", "bar", "baz"},
+	}, nil
+}
+
 func randomTLSCert() (*tls.Certificate, error) {
 	bits := 4096
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
@@ -120,7 +128,7 @@ func TestFuran2ImageBackendBuildImage(t *testing.T) {
 		t.Fatalf("error creating backend: %v", err)
 	}
 
-	err = fbb.BuildImage(context.Background(), "something-random", "acme/foo", "quay.io/foo/bar", "master", BuildOptions{})
+	err = fbb.BuildImage(context.Background(), "something-random", "acme-foo", "acme/foo", "quay.io/foo/bar", "master", BuildOptions{})
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}

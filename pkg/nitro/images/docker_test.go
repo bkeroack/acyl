@@ -85,7 +85,7 @@ func TestDockerBackendBuild(t *testing.T) {
 	}
 	createtf()
 	defer os.Remove(tname)
-	err := dbb.BuildImage(context.Background(), "some-name", "acme/widgets", "quay.io/acme/widgets", "asdf", BuildOptions{})
+	err := dbb.BuildImage(context.Background(), "some-name", "acme-widgets", "acme/widgets", "quay.io/acme/widgets", "asdf", BuildOptions{})
 	if err != nil {
 		t.Fatalf("build should have succeeded: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestDockerBackendBuild(t *testing.T) {
 	createtf()
 	defer os.Remove(tname)
 	builderr = true
-	err = dbb.BuildImage(context.Background(), "some-name", "acme/widgets", "quay.io/acme/widgets", "asdf", BuildOptions{})
+	err = dbb.BuildImage(context.Background(), "some-name", "acme-widgets", "acme/widgets", "quay.io/acme/widgets", "asdf", BuildOptions{})
 	if err == nil {
 		t.Fatalf("build should have failed")
 	}
@@ -107,7 +107,7 @@ func TestDockerBackendBuild(t *testing.T) {
 	built = false
 	builderr = false
 	dbb.Push = true
-	err = dbb.BuildImage(context.Background(), "some-name", "acme/widgets", "quay.io/acme/widgets", "asdf", BuildOptions{})
+	err = dbb.BuildImage(context.Background(), "some-name", "acme-widgets", "acme/widgets", "quay.io/acme/widgets", "asdf", BuildOptions{})
 	if err != nil {
 		t.Fatalf("build should have succeeded: %v", err)
 	}
@@ -120,13 +120,13 @@ func TestDockerBackendBuild(t *testing.T) {
 	createtf()
 	defer os.Remove(tname)
 	pusherr = true
-	err = dbb.BuildImage(context.Background(), "some-name", "acme/widgets", "quay.io/acme/widgets", "asdf", BuildOptions{})
+	err = dbb.BuildImage(context.Background(), "some-name", "acme-widgets", "acme/widgets", "quay.io/acme/widgets", "asdf", BuildOptions{})
 	if err == nil {
 		t.Fatalf("build should have failed")
 	}
 	createtf()
 	defer os.Remove(tname)
-	err = dbb.BuildImage(context.Background(), "some-name", "acme/widgets", "privateregistry.io/acme/widgets", "asdf", BuildOptions{})
+	err = dbb.BuildImage(context.Background(), "some-name", "acme-widgets", "acme/widgets", "privateregistry.io/acme/widgets", "asdf", BuildOptions{})
 	if err == nil {
 		t.Fatalf("build should have failed with missing auth")
 	}

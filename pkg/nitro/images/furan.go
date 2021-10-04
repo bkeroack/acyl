@@ -40,7 +40,7 @@ func NewFuranBuilderBackend(addrs []string, dl persistence.DataLayer, mc metrics
 }
 
 // BuildImage synchronously builds the image using Furan, returning when the build completes.
-func (fib *FuranBuilderBackend) BuildImage(ctx context.Context, envName, githubRepo, imageRepo, ref string, ops BuildOptions) error {
+func (fib *FuranBuilderBackend) BuildImage(ctx context.Context, envName, depName, githubRepo, imageRepo, ref string, ops BuildOptions) error {
 	logger := eventlogger.GetLogger(ctx)
 	if ops.DockerfilePath == "" {
 		ops.DockerfilePath = "Dockerfile"

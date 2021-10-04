@@ -7,6 +7,7 @@ import (
 
 	"github.com/dollarshaveclub/acyl/pkg/models"
 	"github.com/dollarshaveclub/metahelm/pkg/metahelm"
+	guuid "github.com/gofrs/uuid"
 	"github.com/google/uuid"
 )
 
@@ -84,6 +85,7 @@ type EventLoggerDataLayer interface {
 	SetEventStatusTree(id uuid.UUID, tree map[string]models.EventStatusTreeNode) error
 	SetEventStatusCompleted(id uuid.UUID, configStatus models.EventStatus) error
 	SetEventStatusImageStarted(id uuid.UUID, name string) error
+	SetEventStatusImageBuildID(id uuid.UUID, name string, furanBuildID guuid.UUID) error
 	SetEventStatusImageCompleted(id uuid.UUID, name string, err bool) error
 	SetEventStatusChartStarted(id uuid.UUID, name string, status models.NodeChartStatus) error
 	SetEventStatusChartCompleted(id uuid.UUID, name string, status models.NodeChartStatus) error

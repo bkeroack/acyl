@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	guuid "github.com/gofrs/uuid"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -1087,6 +1088,29 @@ func (fdl *FakeDataLayer) SetEventStatusImageStarted(id uuid.UUID, name string) 
 		return fmt.Errorf("%v not found in tree: %v: %v", name, len(keys), keys)
 	}
 	tn.Image.Started = time.Now().UTC()
+	fdl.data.elogs[id].Status.Tree[name] = tn
+	return nil
+}
+
+func (fdl *FakeDataLayer) SetEventStatusImageBuildID(id uuid.UUID, name string, furanBuildID guuid.UUID) error {
+	fdl.doDelay()
+	fdl.data.Lock()
+	defer fdl.data.Unlock()
+	elog := fdl.data.elogs[id]
+	if elog == nil {
+		return errors.New("eventlog not found")
+	}
+	tn, ok := elog.Status.Tree[name]
+	if !ok {
+		keys := make([]string, len(elog.Status.Tree))
+		i := 0
+		for k := range elog.Status.Tree {
+			keys[i] = k
+			i++
+		}
+		return fmt.Errorf("%v not found in tree: %v: %v", name, len(keys), keys)
+	}
+	tn.Image.ID = furanBuildID
 	fdl.data.elogs[id].Status.Tree[name] = tn
 	return nil
 }

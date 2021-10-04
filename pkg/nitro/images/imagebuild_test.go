@@ -15,7 +15,7 @@ type testImageBuildBackend struct {
 	f func(ctx context.Context, envName, repo, imagerepo, ref string, ops BuildOptions) error
 }
 
-func (tib *testImageBuildBackend) BuildImage(ctx context.Context, envName, githubRepo, imageRepo, ref string, ops BuildOptions) error {
+func (tib *testImageBuildBackend) BuildImage(ctx context.Context, envName, depName, githubRepo, imageRepo, ref string, ops BuildOptions) error {
 	return tib.f(ctx, envName, githubRepo, imageRepo, ref, ops)
 }
 

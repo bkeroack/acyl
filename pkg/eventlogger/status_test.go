@@ -7,6 +7,7 @@ import (
 
 	"github.com/dollarshaveclub/acyl/pkg/models"
 	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	guuid "github.com/gofrs/uuid"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 )
@@ -161,9 +162,32 @@ func TestSetImageStarted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting event status: %v", err)
 	}
-
 	if el2.Tree["something"].Image.Started.IsZero() {
 		t.Fatalf("image should have been started")
+	}
+}
+
+func TestSetImageBuildID(t *testing.T) {
+	dl := persistence.NewFakeDataLayer()
+	id, _ := uuid.NewRandom()
+	elog := Logger{DL: dl, ID: id, Sink: os.Stderr}
+	elog.Init([]byte{}, "foo/bar", 99)
+
+	rrd := models.RepoRevisionData{Repo: "foo/bar", PullRequest: 12, User: "john.doe", SourceBranch: "feature-foo", SourceSHA: "asdf"}
+	elog.SetNewStatus(models.CreateEvent, "some-name", rrd)
+
+	elog.SetInitialStatus(&testRC, 10*time.Millisecond)
+
+	bid := guuid.Must(guuid.NewV4())
+
+	elog.SetImageBuildID("something", bid)
+
+	el2, err := dl.GetEventStatus(id)
+	if err != nil {
+		t.Fatalf("error getting event status: %v", err)
+	}
+	if id := el2.Tree["something"].Image.ID; id != bid {
+		t.Fatalf("bad image build id: %v (wanted %v)", id, bid)
 	}
 }
 
@@ -291,17 +315,17 @@ func TestSetNewStatusUnknown(t *testing.T) {
 	}
 	exp := &models.EventStatusSummary{
 		Config: models.EventStatusSummaryConfig{
-			Type: models.UnknownEventStatusType,
-			Status: models.PendingStatus,
+			Type:           models.UnknownEventStatusType,
+			Status:         models.PendingStatus,
 			RenderedStatus: models.RenderedEventStatus{},
-			EnvName: unknown,
+			EnvName:        unknown,
 			TriggeringRepo: rrd.Repo,
-			PullRequest: rrd.PullRequest,
-			GitHubUser: rrd.User,
-			Branch: rrd.SourceBranch,
-			Revision: rrd.SourceSHA,
-			Started: el2.Config.Started,
-			Completed: el2.Config.Completed,
+			PullRequest:    rrd.PullRequest,
+			GitHubUser:     rrd.User,
+			Branch:         rrd.SourceBranch,
+			Revision:       rrd.SourceSHA,
+			Started:        el2.Config.Started,
+			Completed:      el2.Config.Completed,
 		},
 	}
 	if !cmp.Equal(el2, exp) {

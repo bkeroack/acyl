@@ -46,7 +46,7 @@ func TestFuranImageBackendBuildImage(t *testing.T) {
 			el := &eventlogger.Logger{DL: dl}
 			el.Init([]byte{}, c.githubRepo, 99)
 			ctx := eventlogger.NewEventLoggerContext(context.Background(), el)
-			if err := fib.BuildImage(ctx, c.envName, c.githubRepo, c.imageRepo, c.ref, BuildOptions{}); err != nil {
+			if err := fib.BuildImage(ctx, c.envName, "foo-bar", c.githubRepo, c.imageRepo, c.ref, BuildOptions{}); err != nil {
 				if c.isError {
 					if !strings.Contains(err.Error(), c.errContains) {
 						t.Fatalf("error missing string (%v): %v", c.errContains, err)

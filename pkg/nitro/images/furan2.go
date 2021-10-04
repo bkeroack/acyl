@@ -44,7 +44,7 @@ func NewFuran2BuilderBackend(addr, apikey string, ghappInstID int64, skipVerifyT
 }
 
 // BuildImage synchronously builds the image using Furan, returning when the build completes.
-func (fib *Furan2BuilderBackend) BuildImage(ctx context.Context, envName, githubRepo, imageRepo, ref string, ops BuildOptions) error {
+func (fib *Furan2BuilderBackend) BuildImage(ctx context.Context, envName, depName, githubRepo, imageRepo, ref string, ops BuildOptions) error {
 	logger := eventlogger.GetLogger(ctx)
 
 	// Furan 2 (via BuildKit) only supports image builds with files named "Dockerfile" or "dockerfile"
@@ -101,6 +101,8 @@ func (fib *Furan2BuilderBackend) BuildImage(ctx context.Context, envName, github
 			}
 			continue
 		}
+
+		eventlogger.GetLogger(ctx).SetImageBuildID(depName, id)
 
 		mbc, err := fib.rb.MonitorBuild(ctx, id)
 		if err != nil {

@@ -24,7 +24,7 @@ type BuildOptions struct {
 
 // BuilderBackend describes the object that actually does image builds
 type BuilderBackend interface {
-	BuildImage(ctx context.Context, envName, githubRepo, imageRepo, ref string, ops BuildOptions) error
+	BuildImage(ctx context.Context, envName, depName, githubRepo, imageRepo, ref string, ops BuildOptions) error
 }
 
 // Builder describes an object that builds a set of container images
@@ -113,7 +113,7 @@ func (b *ImageBuilder) StartBuilds(ctx context.Context, envname string, rc *mode
 		eventlogger.GetLogger(ctx).SetImageStarted(name)
 
 		end := b.MC.Timing("images.build", "repo:"+repo, "triggering_repo:"+rc.Application.Repo)
-		err := b.Backend.BuildImage(ctx, envname, repo, image, ref, BuildOptions{DockerfilePath: dockerfilepath})
+		err := b.Backend.BuildImage(ctx, envname, name, repo, image, ref, BuildOptions{DockerfilePath: dockerfilepath})
 		end(fmt.Sprintf("success:%v", err == nil))
 
 		eventlogger.GetLogger(ctx).SetImageCompleted(name, err != nil)

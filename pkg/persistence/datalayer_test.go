@@ -11,6 +11,7 @@ import (
 
 	"github.com/dollarshaveclub/acyl/pkg/models"
 	"github.com/dollarshaveclub/metahelm/pkg/metahelm"
+	guuid "github.com/gofrs/uuid"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 )
@@ -1873,6 +1874,26 @@ func TestDataLayerSetEventStatusImageStarted(t *testing.T) {
 	}
 	if s.Tree["foo/bar"].Image.Started.IsZero() {
 		t.Fatalf("started should have been set")
+	}
+}
+
+func TestSetEventStatusImageBuildID(t *testing.T) {
+	dl, tdl := NewTestDataLayer(t)
+	if err := tdl.Setup(testDataPath); err != nil {
+		t.Fatalf("error setting up test database: %v", err)
+	}
+	defer tdl.TearDown()
+	id := uuid.Must(uuid.Parse("c1e1e229-86d8-4d99-a3d5-62b2f6390bbe"))
+	buildid := guuid.Must(guuid.NewV4())
+	if err := dl.SetEventStatusImageBuildID(id, "foo/bar", buildid); err != nil {
+		t.Fatalf("should have succeeded: %v", err)
+	}
+	s, err := dl.GetEventStatus(id)
+	if err != nil {
+		t.Fatalf("get should have succeeded: %v", err)
+	}
+	if fbd := s.Tree["foo/bar"].Image.ID; fbd != buildid {
+		t.Fatalf("furan build ID mismatch: %v (wanted %v)", fbd, buildid)
 	}
 }
 
