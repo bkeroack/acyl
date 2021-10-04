@@ -40,12 +40,13 @@ type DBConfig struct {
 }
 
 type APMConfig struct {
-	Addr string
+	Addr             string
 	App, Environment string
-	APM, Profiling bool
+	APM, Profiling   bool
 }
 
 type ServerConfig struct {
 	HTTPSAddr string
 	GRPCAddr  string
+	SeedKey   string
 }

@@ -406,6 +406,25 @@ func (gr *Server) GetBuildStatus(ctx context.Context, req *furanrpc.BuildStatusR
 	return buildStatusResponseFromBuild(b), nil
 }
 
+func (gr *Server) GetBuildEvents(ctx context.Context, req *furanrpc.BuildStatusRequest) (*furanrpc.BuildEventsResponse, error) {
+	id, err := uuid.FromString(req.BuildId)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid build id: %v", err)
+	}
+	b, err := gr.DL.GetBuildByID(ctx, id)
+	if err != nil {
+		if err == datalayer.ErrNotFound {
+			return nil, status.Errorf(codes.InvalidArgument, "build not found")
+		}
+		return nil, status.Errorf(codes.Internal, "error getting build: %v", err)
+	}
+	return &furanrpc.BuildEventsResponse{
+		BuildId:      req.BuildId,
+		CurrentState: b.Status.State(),
+		Messages:     b.Events,
+	}, nil
+}
+
 // MonitorBuild streams events from a specified build until completion
 func (gr *Server) MonitorBuild(req *furanrpc.BuildStatusRequest, stream furanrpc.FuranExecutor_MonitorBuildServer) error {
 	id, err := uuid.FromString(req.BuildId)

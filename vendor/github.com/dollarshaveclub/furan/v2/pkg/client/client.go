@@ -95,6 +95,16 @@ func (rb *RemoteBuilder) GetBuildStatus(ctx context.Context, id uuid.UUID) (*fur
 	return resp, nil
 }
 
+func (rb *RemoteBuilder) GetBuildEvents(ctx context.Context, id uuid.UUID) (*furanrpc.BuildEventsResponse, error) {
+	resp, err := rb.c.GetBuildEvents(ctx, &furanrpc.BuildStatusRequest{
+		BuildId: id.String(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting build events: %w", err)
+	}
+	return resp, nil
+}
+
 // CancelBuild requests cancellation for a currently running build
 func (rb *RemoteBuilder) CancelBuild(ctx context.Context, id uuid.UUID) error {
 	_, err := rb.c.CancelBuild(ctx, &furanrpc.BuildCancelRequest{

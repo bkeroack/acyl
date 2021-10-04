@@ -173,7 +173,7 @@ github.com/docker/go-units
 # github.com/dollarshaveclub/furan v0.6.1-0.20210604153750-8def5a45ce21
 ## explicit
 github.com/dollarshaveclub/furan/rpcclient
-# github.com/dollarshaveclub/furan/v2 v2.0.1
+# github.com/dollarshaveclub/furan/v2 v2.0.3
 ## explicit
 github.com/dollarshaveclub/furan/v2/pkg/client
 github.com/dollarshaveclub/furan/v2/pkg/config
@@ -250,6 +250,7 @@ github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
 # github.com/gofrs/uuid v4.0.0+incompatible
+## explicit
 github.com/gofrs/uuid
 # github.com/gogo/protobuf v1.3.2
 github.com/gogo/protobuf/proto

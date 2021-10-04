@@ -97,6 +97,15 @@ func (dl *PostgresDBLayer) Close() {
 	dl.lp.Close()
 }
 
+// CreateSeedAPIKey creates a new "seed" API key for testing environments
+// This isn't part of the DataLayer interface because it is not for general use
+func (dl *PostgresDBLayer) CreateSeedAPIKey(ctx context.Context, id uuid.UUID) error {
+	_, err := dl.p.Exec(ctx,
+		`INSERT INTO api_keys (id, name, description) VALUES ($1,$2,$3) ON CONFLICT (id) DO NOTHING;`,
+		id, "seed key", "for testing use only")
+	return err
+}
+
 var retries = 5
 var retryDelay = 10 * time.Millisecond
 
