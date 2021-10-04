@@ -194,6 +194,7 @@ type Dispatcher struct {
 	s                      *http.Server
 	waitgroups             []*sync.WaitGroup
 	uiapi                  *uiapi
+	v2api                  *v2api
 }
 
 // NewDispatcher returns an initialized Dispatcher.
@@ -206,6 +207,9 @@ func NewDispatcher(s *http.Server) *Dispatcher {
 func (d *Dispatcher) Stop() {
 	if d.uiapi != nil {
 		d.uiapi.Close()
+	}
+	if d.v2api != nil {
+		d.v2api.Close()
 	}
 }
 
