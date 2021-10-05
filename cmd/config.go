@@ -39,7 +39,6 @@ import (
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -111,14 +110,8 @@ func init() {
 	// test (create/update/delete)
 	// (see test.go)
 
-	// shared flags
-	hd, err := homedir.Dir()
-	if err != nil {
-		log.Printf("error getting home directory: %v", err)
-		hd = ""
-	}
 	configCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
-	configCmd.PersistentFlags().StringSliceVar(&repoSearchPaths, "search-paths", []string{filepath.Join(hd, "code")}, "comma-separated list of paths to search for git repositories")
+	configCmd.PersistentFlags().StringSliceVar(&repoSearchPaths, "search-paths", []string{"."}, "comma-separated list of paths to search for git repositories")
 	configCmd.PersistentFlags().StringSliceVar(&workingTreeRepos, "working-tree-repos", []string{}, "comma-separated list of repo names to use the working tree instead of commits, if present locally")
 	configCmd.PersistentFlags().BoolVar(&triggeringRepoUsesWorkingTree, "triggering-repo-working-tree", true, "Triggering repo always uses working tree instead of commits")
 	configCmd.PersistentFlags().StringVar(&githubHostname, "github-hostname", "github.com", "GitHub hostname in git repo SSH remotes")
@@ -134,14 +127,13 @@ func init() {
 func generateLocalMetaGetter(dl persistence.DataLayer, scb ghclient.StatusCallback) (*meta.DataGetter, ghclient.LocalRepoInfo, string, context.Context) {
 	var lf func(string, ...interface{})
 	var elsink io.Writer
-	logw, stdlogw := ioutil.Discard, ioutil.Discard
+	logw := ioutil.Discard
 	if verbose {
 		lf = log.Printf
 		elsink = os.Stdout
 		logw = os.Stdout
-		stdlogw = os.Stderr
 	}
-	log.SetOutput(stdlogw)
+	log.SetOutput(os.Stderr)
 	if os.Getenv("GITHUB_TOKEN") == "" {
 		log.Fatalf("GITHUB_TOKEN is empty: make sure you have that environment variable set with a valid token")
 	}
