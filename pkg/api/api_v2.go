@@ -19,7 +19,6 @@ import (
 	"github.com/dollarshaveclub/acyl/pkg/nitro/metahelm"
 	"github.com/dollarshaveclub/acyl/pkg/persistence"
 	"github.com/dollarshaveclub/acyl/pkg/spawner"
-	furan "github.com/dollarshaveclub/furan/v2/pkg/client"
 	"github.com/dollarshaveclub/furan/v2/pkg/generated/furanrpc"
 	guuid "github.com/gofrs/uuid"
 	"github.com/google/uuid"
@@ -186,6 +185,7 @@ type V2EventStatusSummaryConfig struct {
 
 type V2EventStatusTreeNodeImage struct {
 	Name      string     `json:"name"`
+	BuildID   string     `json:"build_id"`
 	Error     bool       `json:"error"`
 	Completed *time.Time `json:"completed"`
 	Started   *time.Time `json:"started"`
@@ -201,8 +201,13 @@ func statusImageOrNil(image models.EventStatusTreeNodeImage) *V2EventStatusTreeN
 	if image.Name == "" {
 		return nil
 	}
+	var id string
+	if image.ID != guuid.Nil {
+		id = image.ID.String()
+	}
 	return &V2EventStatusTreeNodeImage{
 		Name:      image.Name,
+		BuildID:   id,
 		Error:     image.Error,
 		Completed: timeOrNil(image.Completed),
 		Started:   timeOrNil(image.Started),
@@ -265,7 +270,7 @@ func V2EventStatusSummaryFromEventStatusSummary(sum *models.EventStatusSummary) 
 	}
 }
 
-type furan2client interface {
+type Furan2Client interface {
 	GetBuildEvents(ctx context.Context, id guuid.UUID) (*furanrpc.BuildEventsResponse, error)
 	GetBuildStatus(ctx context.Context, id guuid.UUID) (*furanrpc.BuildStatusResponse, error)
 	Close()
@@ -279,18 +284,10 @@ type v2api struct {
 	sc    config.ServerConfig
 	oauth OAuthConfig
 	kr    metahelm.KubernetesReporter
-	fc    furan2client
+	fc    Furan2Client
 }
 
-func newV2API(dl persistence.DataLayer, ge *ghevent.GitHubEventWebhook, es spawner.EnvironmentSpawner, sc config.ServerConfig, oauth OAuthConfig, logger *log.Logger, kr metahelm.KubernetesReporter) (*v2api, error) {
-	fc, err := furan.New(furan.Options{
-		Address:               sc.Furan2Addr,
-		APIKey:                sc.Furan2APIKey,
-		TLSInsecureSkipVerify: sc.Furan2SkipVerifyTLS,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating furan 2 client: %w", err)
-	}
+func newV2API(dl persistence.DataLayer, ge *ghevent.GitHubEventWebhook, es spawner.EnvironmentSpawner, fc Furan2Client, sc config.ServerConfig, oauth OAuthConfig, logger *log.Logger, kr metahelm.KubernetesReporter) (*v2api, error) {
 	return &v2api{
 		apiBase: apiBase{
 			logger: logger,
@@ -1272,12 +1269,12 @@ func (api *v2api) apiKeyDestroyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type V2ImageBuildEvents struct {
-	BuildID   uuid.UUID     `json:"build_id"`
-	Started   time.Time     `json:"started"`
-	Completed time.Time     `json:"completed"`
-	Elapsed   time.Duration `json:"elapsed"`
-	Status    string        `json:"status"`
-	Events    []string      `json:"events"`
+	BuildID   uuid.UUID `json:"build_id"`
+	Started   time.Time `json:"started"`
+	Completed time.Time `json:"completed"`
+	Elapsed   string    `json:"elapsed"`
+	Status    string    `json:"status"`
+	Events    []string  `json:"events"`
 }
 
 func timeFromRPCTimestamp(ts furanrpc.Timestamp) time.Time {
@@ -1328,7 +1325,7 @@ func (api *v2api) imageBuildEventsHandler(w http.ResponseWriter, r *http.Request
 		BuildID:   uuid.Must(uuid.Parse(buuid.String())),
 		Started:   started,
 		Completed: completed,
-		Elapsed:   elapsed,
+		Elapsed:   fmt.Sprintf("%s", elapsed),
 		Status:    bse.CurrentState.String(),
 		Events:    bse.Messages,
 	}

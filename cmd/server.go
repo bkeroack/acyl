@@ -34,6 +34,7 @@ import (
 	"github.com/dollarshaveclub/acyl/pkg/persistence"
 	"github.com/dollarshaveclub/acyl/pkg/reap"
 	"github.com/dollarshaveclub/acyl/pkg/slacknotifier"
+	furan "github.com/dollarshaveclub/furan/v2/pkg/client"
 	"github.com/nlopes/slack"
 	"github.com/spf13/cobra"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -321,6 +322,17 @@ func server(cmd *cobra.Command, args []string) {
 		Logger:             logger,
 		DatadogServiceName: apiServiceName,
 		KubernetesReporter: ci,
+	}
+	if serverConfig.EnableFuran2 {
+		fc, err := furan.New(furan.Options{
+			Address:               serverConfig.Furan2Addr,
+			APIKey:                serverConfig.Furan2APIKey,
+			TLSInsecureSkipVerify: serverConfig.Furan2SkipVerifyTLS,
+		})
+		if err != nil {
+			log.Fatalf("error creating Furan 2 client: %v", err)
+		}
+		deps.Furan2Client = fc
 	}
 	regops := []api.RegisterOption{
 		api.WithAPIKeys(serverConfig.APIKeys),

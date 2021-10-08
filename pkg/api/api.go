@@ -86,6 +86,7 @@ type Dependencies struct {
 	DatadogServiceName string
 	Logger             *log.Logger
 	KubernetesReporter metahelm.KubernetesReporter
+	Furan2Client       Furan2Client
 }
 
 // Manager describes an object capable of registering API versions and waiting on requests
@@ -279,6 +280,7 @@ func (d *Dispatcher) RegisterVersions(deps *Dependencies, ro ...RegisterOption) 
 		deps.DataLayer,
 		deps.GitHubEventWebhook,
 		deps.EnvironmentSpawner,
+		deps.Furan2Client,
 		deps.ServerConfig,
 		oauthcfg,
 		deps.Logger,
