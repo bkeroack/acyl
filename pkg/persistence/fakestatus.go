@@ -8,6 +8,7 @@ import (
 	"time"
 
 	lorem "github.com/dollarshaveclub/acyl/pkg/persistence/golorem"
+	guuid "github.com/gofrs/uuid"
 
 	"github.com/dollarshaveclub/acyl/pkg/models"
 	"github.com/dollarshaveclub/acyl/pkg/namegen"
@@ -75,6 +76,7 @@ func (fdl *FakeDataLayer) updateEvent(id uuid.UUID, envname string, success bool
 			Image: models.EventStatusTreeNodeImage{
 				Name:    "quay.io/foo/bar",
 				Started: offsetTime(fdl.data.elogs[id].Created),
+				ID:      guuid.Must(guuid.NewV4()),
 			},
 			Chart: models.EventStatusTreeNodeChart{
 				Status: models.WaitingChartStatus,
@@ -89,8 +91,8 @@ func (fdl *FakeDataLayer) updateEvent(id uuid.UUID, envname string, success bool
 		"foo-somethingelse": models.EventStatusTreeNode{
 			Parent: "foo-bar",
 			Image: models.EventStatusTreeNodeImage{
-				Name:    "quay.io/foo/somethingelse",
-				Started: offsetTime(fdl.data.elogs[id].Created),
+				Name: "quay.io/foo/somethingelse",
+				ID:   guuid.Must(guuid.NewV4()),
 			},
 			Chart: models.EventStatusTreeNodeChart{
 				Status: models.WaitingChartStatus,
@@ -101,6 +103,7 @@ func (fdl *FakeDataLayer) updateEvent(id uuid.UUID, envname string, success bool
 			Image: models.EventStatusTreeNodeImage{
 				Name:    "quay.io/foo/dependency",
 				Started: offsetTime(fdl.data.elogs[id].Created),
+				ID:      guuid.Must(guuid.NewV4()),
 			},
 			Chart: models.EventStatusTreeNodeChart{
 				Status: models.WaitingChartStatus,
@@ -136,6 +139,77 @@ func (fdl *FakeDataLayer) updateEvent(id uuid.UUID, envname string, success bool
 				Status: models.WaitingChartStatus,
 			},
 		},
+		"foo-level-4": models.EventStatusTreeNode{
+			Parent: "foo-dependency-some-long-name-asdf12345-2",
+			Chart: models.EventStatusTreeNodeChart{
+				Status: models.WaitingChartStatus,
+			},
+		},
+		"foo-level-5": models.EventStatusTreeNode{
+			Parent: "foo-level-4",
+			Chart: models.EventStatusTreeNodeChart{
+				Status: models.WaitingChartStatus,
+			},
+		},
+	}
+	fdl.data.Unlock()
+
+	// start level 5
+	time.Sleep(randomDuration(500, 5000))
+	fdl.data.Lock()
+	{
+		fdl.data.elogs[id].Log = append(fdl.data.elogs[id].Log, randomLogLines(10)...)
+		n := "foo-level-5"
+		c := fdl.data.elogs[id].Status.Tree[n]
+		c.Chart.Status = models.InstallingChartStatus
+		c.Chart.Started = offsetTime(fdl.data.elogs[id].Created)
+		fdl.data.elogs[id].Status.Tree[n] = c
+	}
+	fdl.data.Unlock()
+
+	// complete level 5
+	time.Sleep(randomDuration(500, 5000))
+	fdl.data.Lock()
+	{
+		n := "foo-level-5"
+		c := fdl.data.elogs[id].Status.Tree[n]
+		c.Chart.Status = models.DoneChartStatus
+		c.Chart.Completed = offsetTime(fdl.data.elogs[id].Created)
+		fdl.data.elogs[id].Status.Tree[n] = c
+	}
+	fdl.data.Unlock()
+
+	// start level 4
+	time.Sleep(randomDuration(500, 5000))
+	fdl.data.Lock()
+	{
+		fdl.data.elogs[id].Log = append(fdl.data.elogs[id].Log, randomLogLines(10)...)
+		n := "foo-level-4"
+		c := fdl.data.elogs[id].Status.Tree[n]
+		c.Chart.Status = models.InstallingChartStatus
+		c.Chart.Started = offsetTime(fdl.data.elogs[id].Created)
+		fdl.data.elogs[id].Status.Tree[n] = c
+	}
+	fdl.data.Unlock()
+
+	// complete level 4
+	time.Sleep(randomDuration(500, 5000))
+	fdl.data.Lock()
+	{
+		n := "foo-level-4"
+		c := fdl.data.elogs[id].Status.Tree[n]
+		c.Chart.Status = models.DoneChartStatus
+		c.Chart.Completed = offsetTime(fdl.data.elogs[id].Created)
+		fdl.data.elogs[id].Status.Tree[n] = c
+	}
+	fdl.data.Unlock()
+
+	// start foo-somethingelse image build
+	fdl.data.Lock()
+	{
+		c := fdl.data.elogs[id].Status.Tree["foo-somethingelse"]
+		c.Image.Started = offsetTime(fdl.data.elogs[id].Created)
+		fdl.data.elogs[id].Status.Tree["foo-somethingelse"] = c
 	}
 	fdl.data.Unlock()
 
@@ -181,7 +255,7 @@ func (fdl *FakeDataLayer) updateEvent(id uuid.UUID, envname string, success bool
 	fdl.data.elogs[id].Log = append(fdl.data.elogs[id].Log, randomLogLines(10)...)
 	i = fdl.data.elogs[id].Status.Tree["foo-somethingelse"]
 	i.Image.Completed = offsetTime(fdl.data.elogs[id].Created)
-	i.Image.Error = false
+	i.Image.Error = true
 	i.Chart.Status = models.InstallingChartStatus
 	i.Chart.Started = offsetTime(fdl.data.elogs[id].Created)
 	fdl.data.elogs[id].Status.Tree["foo-somethingelse"] = i
