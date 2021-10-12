@@ -217,14 +217,18 @@ function updateTree(treedata) {
                 .style("display", "none");
 
             nttd.on("mouseleave", function(d) {
-                d3.select(`#tooltip-${d.id}`)
-                    .transition()
-                    .duration(300)
-                    .style("opacity", 1e-6)
-                    .style("display", "none");
+                closeNodeTooltip(`tooltip-${d.id}`);
             });
 
+            nttd.append("button")
+                .attr("type", "button")
+                .attr("class", "close text-light pb-2")
+                .attr("aria-label", "Close")
+                .attr("onclick", `closeNodeTooltip("tooltip-${d.id}");`)
+                .html(`<span aria-hidden="true">&times;</span></button>`);
+
             nttd.append("h6")
+                .attr("class", "pt-1")
                 .attr("id", `tooltip-${d.id}-name`);
 
             nttd.append("button")
@@ -551,6 +555,10 @@ function updateTree(treedata) {
     // Define node entry
     let nodeEnter = node.enter().append("g")
         .on("mouseover", function(d) {
+            if (currentVisibleTooltip !== null) {
+                closeNodeTooltip(currentVisibleTooltip);
+            }
+            currentVisibleTooltip = `tooltip-${d.id}`;
             d3.select(`#tooltip-${d.id}`)
                 .style("display", "block")
                 .style("left", (d3.event.pageX ) + "px")
@@ -624,6 +632,18 @@ function updateTree(treedata) {
     link.enter().insert("path", "g")
         .attr("class", "link")
         .attr("d", diagonal);
+}
+
+// only allow one tooltip to be visible at a time
+let currentVisibleTooltip;
+
+function closeNodeTooltip(nodeid) {
+    currentVisibleTooltip = null;
+    d3.select(`#${nodeid}`)
+        .transition()
+        .duration(300)
+        .style("opacity", 1e-6)
+        .style("display", "none");
 }
 
 function refreshImageBuildLogs(nodeID, buildID) {
