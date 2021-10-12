@@ -199,6 +199,8 @@ function updateTree(treedata) {
         svg = d3.select("#envtree-svg");
     }
 
+    let imageModalTimers = {};
+
     // Normalize for fixed-depth.
     nodes.forEach(function(d) {
         // Root node should be vertically offset to allow margin between the container and root node
@@ -270,7 +272,7 @@ function updateTree(treedata) {
                 .attr("aria-labelledby", `image-modal-${d.id}`)
                 .attr("aria-hidden", "true")
                 .append("div")
-                .attr("class", "modal-dialog")
+                .attr("class", "modal-dialog modal-dialog-scrollable")
                 .attr("role", "document")
                 .append("div")
                 .attr("class", "modal-content text-light bg-dark");
@@ -287,9 +289,10 @@ function updateTree(treedata) {
                 .attr("aria-label", "Close")
                 .html('<span aria-hidden="true">&times;</span>');
             mcnt.append("div")
-                .attr("class", "modal-body overflow-auto pod-logs")
+                .attr("class", "modal-body")
+                .attr("id", `image-modal-body-${d.id}`)
                 .append("div")
-                .attr("class", "container-body pod-logs")
+                .attr("class", "overflow-auto pod-logs")
                 .attr("id", `image-build-log-${d.id}`);
             let mftr = mcnt.append("div")
                 .attr("class", "modal-footer");
@@ -311,6 +314,22 @@ function updateTree(treedata) {
             btn.setAttribute("onclick", `refreshImageBuildLogs("${d.id}", "${d.data.image.build_id}");`);
             let refresh = document.getElementById(`image-modal-refresh-btn-${d.id}`);
             refresh.setAttribute("onclick", `refreshImageBuildLogs("${d.id}", "${d.data.image.build_id}");`);
+
+            // we have to use JQuery for modal events
+            // set up auto-refresh when the image modal is shown
+            $(`#image-modal-${d.id}`).on('shown.bs.modal', function (e) {
+                if (!(d.id in imageModalTimers)) {
+                    imageModalTimers[d.id] = setInterval(function() {
+                        refreshImageBuildLogs(d.id, d.data.image.build_id);
+                    }, 1000);
+                }
+            });
+            $(`#image-modal-${d.id}`).on('hidden.bs.modal', function (e) {
+                if (d.id in imageModalTimers) {
+                    clearTimeout(imageModalTimers[d.id]);
+                    delete imageModalTimers[d.id];
+                }
+            });
         }
 
     });
@@ -662,8 +681,12 @@ function refreshImageBuildLogs(nodeID, buildID) {
             title.innerText = `Image Build: ${nodeID} (${data.status})`;
             let elapsed = document.getElementById(`image-build-elapsed-${nodeID}`);
             elapsed.innerText = data.elapsed;
-            let logs = document.getElementById(`image-build-log-${nodeID}`);
-            logs.innerText = data.events.join("\n");
+            let mbod = document.getElementById(`image-modal-body-${nodeID}`);
+            let scrolled = mbod.scrollTop === (mbod.scrollHeight - mbod.offsetHeight) || mbod.innerText.length === 0;
+            document.getElementById(`image-build-log-${nodeID}`).innerHTML = data.events.join("<br \>\n");
+            if (scrolled) {
+                mbod.scrollTop = mbod.scrollHeight;
+            }
         }
     };
     req.onerror = function (e) {
@@ -675,9 +698,12 @@ function refreshImageBuildLogs(nodeID, buildID) {
 
 
 function updateLogs(logs) {
-    document.getElementById("logsContainer").innerHTML = logs.join("<br \>\n");
     let objDiv = document.getElementById("logsContainer");
-    objDiv.scrollTop = objDiv.scrollHeight;
+    let scrolled = objDiv.scrollTop === (objDiv.scrollHeight - objDiv.offsetHeight) || objDiv.innerText.length === 0;
+    document.getElementById("logsContainer").innerHTML = logs.join("<br \>\n");
+    if (scrolled) {
+        objDiv.scrollTop = objDiv.scrollHeight;
+    }
 }
 
 // containerSelected calls get pod logs with the selected container
