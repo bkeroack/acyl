@@ -52,34 +52,7 @@ var mockuiCmd = &cobra.Command{
 	Run:   mockui,
 }
 
-var listenAddr, mockDataFile, mockUser string
-var mockRepos []string
-var readOnly bool
-
-func addUIFlags(cmd *cobra.Command) {
-	brj, err := json.Marshal(&config.DefaultUIBranding)
-	if err != nil {
-		log.Fatalf("error marshaling default UI branding: %v", err)
-	}
-	var uipath = os.Getenv("XDG_DATA_DIRS")
-	if uipath == "" {
-		uipath = "/usr/local/share/acyl"
-	} else {
-		uipath = strings.SplitN(uipath, ":", 2)[0]
-	}
-	if _, err := os.Stat("./ui"); err == nil {
-		uipath = "./ui"
-	}
-	cmd.PersistentFlags().StringVar(&serverConfig.UIBaseURL, "ui-base-url", "", "External base URL (https://somedomain.com) for UI links")
-	cmd.PersistentFlags().StringVar(&serverConfig.UIPath, "ui-path", uipath, "Local filesystem path to UI assets")
-	cmd.PersistentFlags().StringVar(&serverConfig.UIBaseRoute, "ui-base-route", "/ui", "Base prefix for UI HTTP routes")
-	cmd.PersistentFlags().StringVar(&serverConfig.UIBrandingJSON, "ui-branding", string(brj), "Branding JSON configuration (see doc)")
-	cmd.PersistentFlags().BoolVar(&githubConfig.OAuth.Enforce, "ui-enforce-oauth", false, "Enforce GitHub App OAuth authn/authz for UI routes")
-	cmd.PersistentFlags().StringVar(&mockDataFile, "mock-data", "testdata/data.json", "Path to mock data file")
-	cmd.PersistentFlags().StringVar(&mockUser, "mock-user", "bobsmith", "Mock username (for sessions)")
-	cmd.PersistentFlags().StringSliceVar(&mockRepos, "mock-repos", []string{"acme/microservice", "acme/widgets", "acme/customers"}, "Mock repo read write permissions (for session user)")
-	cmd.PersistentFlags().BoolVar(&readOnly, "mock-read-only", false, "Mock repo override to read only permissions (for session user)")
-}
+var listenAddr string
 
 func init() {
 	mockuiCmd.PersistentFlags().StringVar(&listenAddr, "listen-addr", "localhost:4000", "Listen address")

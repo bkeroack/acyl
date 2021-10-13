@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -64,6 +65,44 @@ var serverCmd = &cobra.Command{
 		getSecrets()
 		setupServerLogger()
 	},
+}
+
+var mockDataFile, mockUser string
+var mockRepos []string
+var readOnly bool
+
+func addUIFlags(cmd *cobra.Command) {
+	brj, err := json.Marshal(&config.DefaultUIBranding)
+	if err != nil {
+		log.Fatalf("error marshaling default UI branding: %v", err)
+	}
+	// UI path precendence:
+	// 1. /opt/ui  (HIGHEST) - we're probably running in a Docker container
+	// 2. ./ui - running in the root of the git repo, use what's locally here
+	// 3. XDG_DATA_DIRS[0]/acyl/ui - Unix-like OS with preference set
+	// 4. /usr/local/share/acyl/ui - No preference set, setting this and hoping for the best
+	var uipath string
+	_, err = os.Stat("/opt/ui")
+	_, err2 := os.Stat("./ui")
+	switch {
+	case err == nil:
+		uipath = "/opt/ui"
+	case err2 == nil:
+		uipath = "./ui"
+	case os.Getenv("XDG_DATA_DIRS") != "":
+		uipath = filepath.Join(strings.SplitN(os.Getenv("XDG_DATA_DIRS"), ":", 2)[0], "acyl", "ui")
+	default:
+		uipath = "/usr/local/share/acyl/ui"
+	}
+	cmd.PersistentFlags().StringVar(&serverConfig.UIBaseURL, "ui-base-url", "", "External base URL (https://somedomain.com) for UI links")
+	cmd.PersistentFlags().StringVar(&serverConfig.UIPath, "ui-path", uipath, "Local filesystem path to UI assets")
+	cmd.PersistentFlags().StringVar(&serverConfig.UIBaseRoute, "ui-base-route", "/ui", "Base prefix for UI HTTP routes")
+	cmd.PersistentFlags().StringVar(&serverConfig.UIBrandingJSON, "ui-branding", string(brj), "Branding JSON configuration (see doc)")
+	cmd.PersistentFlags().BoolVar(&githubConfig.OAuth.Enforce, "ui-enforce-oauth", false, "Enforce GitHub App OAuth authn/authz for UI routes")
+	cmd.PersistentFlags().StringVar(&mockDataFile, "mock-data", "testdata/data.json", "Path to mock data file")
+	cmd.PersistentFlags().StringVar(&mockUser, "mock-user", "bobsmith", "Mock username (for sessions)")
+	cmd.PersistentFlags().StringSliceVar(&mockRepos, "mock-repos", []string{"acme/microservice", "acme/widgets", "acme/customers"}, "Mock repo read write permissions (for session user)")
+	cmd.PersistentFlags().BoolVar(&readOnly, "mock-read-only", false, "Mock repo override to read only permissions (for session user)")
 }
 
 func init() {
