@@ -316,10 +316,14 @@ func getImageBackend(dl persistence.DataLayer, rc ghclient.RepoClient, auths map
 	switch {
 	case testEnvCfg.buildMode == "none":
 		return &images.NoneBackend{}, nil
-	case strings.HasPrefix(testEnvCfg.buildMode, "furan://"):
-		fb, err := images.NewFuranBuilderBackend([]string{testEnvCfg.buildMode[8:len(testEnvCfg.buildMode)]}, dl, &oldmetrics.FakeCollector{}, ioutil.Discard, "furan.test-client")
+	case strings.HasPrefix(testEnvCfg.buildMode, "furan2://"):
+
+		// TODO: add support for static GH token and Furan 2 API key
+		clierr("Furan 2 support not fully implemented for local use yet")
+
+		fb, err := images.NewFuran2BuilderBackend(testEnvCfg.buildMode[8:len(testEnvCfg.buildMode)], "", 0, false, dl, nil, &oldmetrics.FakeCollector{})
 		if err != nil {
-			return nil, errors.Wrap(err, "error getting furan backend")
+			return nil, errors.Wrap(err, "error getting furan 2 backend")
 		}
 		return fb, nil
 	case testEnvCfg.buildMode == "docker" || testEnvCfg.buildMode == "docker-nopush":

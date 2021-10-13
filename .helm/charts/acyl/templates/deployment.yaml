@@ -59,15 +59,9 @@ spec:
           - "--dogstatsd-tags"
           - "{{ .Values.app.metrics_tags }}"
         {{ end }}
-        {{ if .Values.app.furan2.enabled }}
-          - "--use-furan2"
           - "--furan2-disable-tls-verification={{ .Values.app.furan2.disable_tls_verification }}"
           - "--furan2-addr"
           - "{{ .Values.app.furan2.addr }}"
-        {{ else }}
-          - "--furan-addrs"
-          - "{{ .Values.app.furan_addr }}"
-        {{ end }}
           - "--secrets-backend"
           - "{{ .Values.app.secrets_backend }}"
           - "--secrets-mapping"

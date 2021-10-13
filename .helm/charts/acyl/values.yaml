@@ -28,7 +28,6 @@ app:
   metrics_tags: ''
   furan_addr: "furan"
   furan2:
-    enabled: false
     disable_tls_verification: false
     addr: "furan2:5000"
   k8s_group_bindings: ""

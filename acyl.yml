@@ -9,7 +9,6 @@ application:
   chart_vars_repo_path: 'dollarshaveclub/helm-charts@master:releases/kube.shave.io/acyl/dqa.yml'
   image: quay.io/dollarshaveclub/acyl
   value_overrides:
-    - "app.furan2.enabled=true"
     - "app.furan2.disable_tls_verification=true"
     - "app.furan2.addr=furan:4000"
 # local:

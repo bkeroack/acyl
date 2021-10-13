@@ -272,8 +272,6 @@ func mockui(cmd *cobra.Command, args []string) {
 		return "updated environment", nil
 	}
 
-	serverConfig.EnableFuran2 = true
-
 	deps := &api.Dependencies{
 		DataLayer:          dl,
 		ServerConfig:       serverConfig,

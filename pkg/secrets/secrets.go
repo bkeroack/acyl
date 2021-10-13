@@ -197,12 +197,10 @@ func (psf *PVCSecretsFetcher) PopulateServer(srv *config.ServerConfig) error {
 		}
 		srv.TLSCert = cert
 	}
-	if srv.EnableFuran2 {
-		s, err = psf.sc.Get(furan2apikey)
-		if err != nil {
-			return errors.Wrap(err, "error getting Furan 2 API key")
-		}
-		srv.Furan2APIKey = string(s)
+	s, err = psf.sc.Get(furan2apikey)
+	if err != nil {
+		return errors.Wrap(err, "error getting Furan 2 API key")
 	}
+	srv.Furan2APIKey = string(s)
 	return nil
 }

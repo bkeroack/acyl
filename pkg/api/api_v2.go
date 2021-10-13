@@ -328,9 +328,7 @@ func (api *v2api) register(r *muxtrace.Router) error {
 	r.HandleFunc("/v2/userenvs/{name}/namespace/pods", middlewareChain(api.userEnvNamePodsHandler, sessionAuthMiddleware.sessionAuth)).Methods("GET")
 	r.HandleFunc("/v2/userenvs/{name}/namespace/pod/{pod}/containers", middlewareChain(api.userEnvPodContainersHandler, sessionAuthMiddleware.sessionAuth)).Methods("GET")
 	r.HandleFunc("/v2/userenvs/{name}/namespace/pod/{pod}/logs", middlewareChain(api.userEnvPodLogsHandler, sessionAuthMiddleware.sessionAuth)).Methods("GET")
-	if api.sc.EnableFuran2 {
-		r.HandleFunc("/v2/userenvs/{name}/imagebuild/{image_build_id}/events", middlewareChain(api.imageBuildEventsHandler, sessionAuthMiddleware.sessionAuth)).Methods("GET")
-	}
+	r.HandleFunc("/v2/userenvs/{name}/imagebuild/{image_build_id}/events", middlewareChain(api.imageBuildEventsHandler, sessionAuthMiddleware.sessionAuth)).Methods("GET")
 
 	// User tokens
 	r.HandleFunc("/v2/user/tokens", middlewareChain(api.apiKeysHandler, sessionAuthMiddleware.sessionAuth)).Methods("GET")

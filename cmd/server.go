@@ -111,8 +111,6 @@ func init() {
 	serverCmd.PersistentFlags().BoolVar(&serverConfig.DisableTLS, "disable-tls", false, "Disable TLS for the REST HTTP(S) server")
 	serverCmd.PersistentFlags().StringVar(&githubConfig.TypePath, "repo-type-path", "acyl.yml", "Relative path within the target repo to look for the type definition")
 	serverCmd.PersistentFlags().StringVar(&serverConfig.WordnetPath, "wordnet-path", "/opt/words.json.gz", "Path to gzip-compressed JSON wordnet file")
-	serverCmd.PersistentFlags().StringSliceVar(&serverConfig.FuranAddrs, "furan-addrs", []string{}, "Furan hosts")
-	serverCmd.PersistentFlags().BoolVar(&serverConfig.EnableFuran2, "use-furan2", false, "Enable Furan 2 image builder")
 	serverCmd.PersistentFlags().BoolVar(&serverConfig.Furan2SkipVerifyTLS, "furan2-disable-tls-verification", false, "Disable Furan 2 TLS verification (FOR TESTING PURPOSES ONLY)")
 	serverCmd.PersistentFlags().StringVar(&serverConfig.Furan2Addr, "furan2-addr", "", "Furan2 host:port")
 	serverCmd.PersistentFlags().StringVar(&slackConfig.Channel, "slack-channel", "dyn-qa-notifications", "Slack channel for notifications")
@@ -217,36 +215,25 @@ func server(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// Furan vs Furan 2
-	var ibb images.BuilderBackend
-	if serverConfig.EnableFuran2 {
-		// we need an *installation* github client for the furan 2 builder
-		rci, err := ghclient.NewGithubInstallationClient(githubConfig)
-		if err != nil {
-			log.Fatalf("error getting github installation client: %v", err)
-		}
-		var f2tls string
-		if serverConfig.Furan2SkipVerifyTLS {
-			f2tls = " (TLS verification DISABLED! THIS IS INSECURE!)"
-		}
-		log.Printf("using furan2 at %v for image builds%v", serverConfig.Furan2Addr, f2tls)
-		fbb, err := images.NewFuran2BuilderBackend(serverConfig.Furan2Addr, serverConfig.Furan2APIKey, int64(githubConfig.OAuth.AppInstallationID), serverConfig.Furan2SkipVerifyTLS, dl, rci, mc)
-		if err != nil {
-			log.Fatalf("error getting Furan 2 image builder backend: %v", err)
-		}
-		ibb = fbb
-	} else {
-		log.Printf("falling back to legacy furan 1 at %v for image builds", serverConfig.FuranAddrs)
-		fbb, err := images.NewFuranBuilderBackend(serverConfig.FuranAddrs, dl, mc, os.Stderr, datadogServiceName)
-		if err != nil {
-			log.Fatalf("error getting Furan image builder backend: %v", err)
-		}
-		ibb = fbb
+	// Furan 2
+	// we need an *installation* github client for the furan 2 builder
+	rci, err := ghclient.NewGithubInstallationClient(githubConfig)
+	if err != nil {
+		log.Fatalf("error getting github installation client: %v", err)
+	}
+	var f2tls string
+	if serverConfig.Furan2SkipVerifyTLS {
+		f2tls = " (TLS verification DISABLED! THIS IS INSECURE!)"
+	}
+	log.Printf("using furan2 at %v for image builds%v", serverConfig.Furan2Addr, f2tls)
+	fbb, err := images.NewFuran2BuilderBackend(serverConfig.Furan2Addr, serverConfig.Furan2APIKey, int64(githubConfig.OAuth.AppInstallationID), serverConfig.Furan2SkipVerifyTLS, dl, rci, mc)
+	if err != nil {
+		log.Fatalf("error getting Furan 2 image builder backend: %v", err)
 	}
 	ib := &images.ImageBuilder{
 		DL:      dl,
 		MC:      nmc,
-		Backend: ibb,
+		Backend: fbb,
 	}
 
 	fs := osfs.New("")
@@ -362,17 +349,15 @@ func server(cmd *cobra.Command, args []string) {
 		DatadogServiceName: apiServiceName,
 		KubernetesReporter: ci,
 	}
-	if serverConfig.EnableFuran2 {
-		fc, err := furan.New(furan.Options{
-			Address:               serverConfig.Furan2Addr,
-			APIKey:                serverConfig.Furan2APIKey,
-			TLSInsecureSkipVerify: serverConfig.Furan2SkipVerifyTLS,
-		})
-		if err != nil {
-			log.Fatalf("error creating Furan 2 client: %v", err)
-		}
-		deps.Furan2Client = fc
+	fc, err := furan.New(furan.Options{
+		Address:               serverConfig.Furan2Addr,
+		APIKey:                serverConfig.Furan2APIKey,
+		TLSInsecureSkipVerify: serverConfig.Furan2SkipVerifyTLS,
+	})
+	if err != nil {
+		log.Fatalf("error creating Furan 2 client: %v", err)
 	}
+	deps.Furan2Client = fc
 	regops := []api.RegisterOption{
 		api.WithAPIKeys(serverConfig.APIKeys),
 		api.WithUIBaseURL(serverConfig.UIBaseURL),
