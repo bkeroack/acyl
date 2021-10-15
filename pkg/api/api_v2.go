@@ -1312,18 +1312,18 @@ func (api *v2api) imageBuildEventsHandler(w http.ResponseWriter, r *http.Request
 	var elapsed time.Duration
 	if bsr.Started != nil {
 		started = timeFromRPCTimestamp(*bsr.Started)
-		elapsed = time.Since(started)
-	}
-	if bsr.Completed != nil {
-		completed = timeFromRPCTimestamp(*bsr.Completed)
-		elapsed = completed.Sub(started)
+		elapsed = time.Now().UTC().Sub(started)
+		if bsr.Completed != nil && bsr.Completed.Seconds > 0 {
+			completed = timeFromRPCTimestamp(*bsr.Completed)
+			elapsed = completed.Sub(started)
+		}
 	}
 
 	v2be := &V2ImageBuildEvents{
 		BuildID:   uuid.Must(uuid.Parse(buuid.String())),
 		Started:   started,
 		Completed: completed,
-		Elapsed:   fmt.Sprintf("%s", elapsed),
+		Elapsed:   fmt.Sprintf("%s", elapsed.Round(1*time.Second)),
 		Status:    bse.CurrentState.String(),
 		Events:    bse.Messages,
 	}

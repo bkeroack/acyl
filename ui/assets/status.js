@@ -205,7 +205,7 @@ function updateTree(treedata) {
     nodes.forEach(function(d) {
         // Root node should be vertically offset to allow margin between the container and root node
         if (d.depth == 0) {
-            d.y = 1;
+            d.y = 25;
         } else {
             // fixed depth of 90 pixels per tree level
             d.y = d.depth * 90;
@@ -300,6 +300,10 @@ function updateTree(treedata) {
                 .attr("class", "text-muted pr-2")
                 .attr("id", `image-build-elapsed-${d.id}`)
                 .text("Elapsed: 3m 26s");
+            mftr.append("small")
+                .attr("class", "text-muted pr-2")
+                .attr("id", `image-build-refresh-label-${d.id}`)
+                .text("(auto-refreshing every 1s)");
             mftr.append("button")
                 .attr("type", "button")
                 .attr("id", `image-modal-refresh-btn-${d.id}`)
@@ -680,7 +684,7 @@ function refreshImageBuildLogs(nodeID, buildID) {
             let title = document.getElementById(`image-build-title-${nodeID}`);
             title.innerText = `Image Build: ${nodeID} (${data.status})`;
             let elapsed = document.getElementById(`image-build-elapsed-${nodeID}`);
-            elapsed.innerText = data.elapsed;
+            elapsed.innerText = `Elapsed: ${data.elapsed}`;
             let mbod = document.getElementById(`image-modal-body-${nodeID}`);
             let scrolled = mbod.scrollTop === (mbod.scrollHeight - mbod.offsetHeight) || mbod.innerText.length === 0;
             document.getElementById(`image-build-log-${nodeID}`).innerHTML = data.events.join("<br \>\n");
