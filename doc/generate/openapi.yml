@@ -9,7 +9,7 @@ info:
   description: "The Acyl API provides authenticated users options manage dynamic environments."
   contact:
     name: Benjamen Keroack
-    url: "https://github.com/dollarshaveclub/acyl"
+    url: "https://github.com/bkeroack/acyl"
     email: benjamen@dollarshaveclub.com
   license:
     name: MIT

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dollarshaveclub/acyl/pkg/ghclient"
-	"github.com/dollarshaveclub/acyl/pkg/memfs"
-	"github.com/dollarshaveclub/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/ghclient"
+	"github.com/bkeroack/acyl/pkg/memfs"
+	"github.com/bkeroack/acyl/pkg/models"
 	"github.com/pkg/errors"
 )
 

@@ -20,8 +20,8 @@ import (
 	"github.com/lib/pq/hstore"
 
 	"github.com/DavidHuie/gomigrate"
-	"github.com/dollarshaveclub/acyl/pkg/config"
-	"github.com/dollarshaveclub/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/models"
 	"github.com/pkg/errors"
 )
 

@@ -1,8 +1,8 @@
 package slacknotifier
 
 import (
-  "github.com/dollarshaveclub/acyl/pkg/models"
-  "github.com/dollarshaveclub/acyl/pkg/ghclient"
+  "github.com/bkeroack/acyl/pkg/models"
+  "github.com/bkeroack/acyl/pkg/ghclient"
 )
 
 type RepoRevisionData = models.RepoRevisionData

@@ -41,7 +41,7 @@ changelog:
 nfpms:
   - file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
-    homepage: https://github.com/dollarshaveclub/acyl
+    homepage: https://github.com/bkeroack/acyl
 
     # Your app's maintainer (probably you).
     # Default is empty.

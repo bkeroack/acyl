@@ -12,7 +12,7 @@ var versionCmd = &cobra.Command{
 	Short: "Display version information",
 	Long:  `Display acyl version, commit SHA and build date`,
 	Run: func(cmd *cobra.Command, args []string) {
-		commit := "https://github.com/dollarshaveclub/acyl/commit/" + Commit
+		commit := "https://github.com/bkeroack/acyl/commit/" + Commit
 		if Commit == "" {
 			commit = "n/a"
 		}

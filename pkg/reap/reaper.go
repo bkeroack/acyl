@@ -10,11 +10,11 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/dollarshaveclub/acyl/pkg/ghclient"
-	"github.com/dollarshaveclub/acyl/pkg/locker"
-	"github.com/dollarshaveclub/acyl/pkg/models"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
-	"github.com/dollarshaveclub/acyl/pkg/spawner"
+	"github.com/bkeroack/acyl/pkg/ghclient"
+	"github.com/bkeroack/acyl/pkg/locker"
+	"github.com/bkeroack/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/spawner"
 )
 
 const (

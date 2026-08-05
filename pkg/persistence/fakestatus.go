@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	lorem "github.com/dollarshaveclub/acyl/pkg/persistence/golorem"
+	lorem "github.com/bkeroack/acyl/pkg/persistence/golorem"
 
-	"github.com/dollarshaveclub/acyl/pkg/models"
-	"github.com/dollarshaveclub/acyl/pkg/namegen"
+	"github.com/bkeroack/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/namegen"
 	"github.com/google/uuid"
 )
 

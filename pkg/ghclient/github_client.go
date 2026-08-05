@@ -3,7 +3,7 @@ package ghclient
 import (
 	"context"
 	"fmt"
-	"github.com/dollarshaveclub/acyl/pkg/eventlogger"
+	"github.com/bkeroack/acyl/pkg/eventlogger"
 	"golang.org/x/time/rate"
 	"io"
 	"io/ioutil"
@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/ghapp"
+	"github.com/bkeroack/acyl/pkg/ghapp"
 
 	"github.com/google/go-github/v38/github"
 	"github.com/pkg/errors"

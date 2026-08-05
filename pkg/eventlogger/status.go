@@ -3,7 +3,7 @@ package eventlogger
 import (
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/models"
 	"github.com/dollarshaveclub/metahelm/pkg/metahelm"
 )
 

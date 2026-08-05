@@ -9,7 +9,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
-	"github.com/dollarshaveclub/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/models"
 )
 
 // CreateAPIKey creates a new user api key

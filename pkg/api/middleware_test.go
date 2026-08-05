@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/models"
 	"github.com/gorilla/securecookie"
 
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/persistence"
 )
 
 const (

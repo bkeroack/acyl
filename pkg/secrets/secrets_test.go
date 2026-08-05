@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/dollarshaveclub/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/config"
 	"github.com/dollarshaveclub/pvc"
 )
 

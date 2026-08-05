@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/DavidHuie/gomigrate"
-	"github.com/dollarshaveclub/acyl/pkg/config"
-	"github.com/dollarshaveclub/acyl/pkg/secrets"
+	"github.com/bkeroack/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/secrets"
 	"github.com/spf13/cobra"
 
 	"database/sql"

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/config"
-	"github.com/dollarshaveclub/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"

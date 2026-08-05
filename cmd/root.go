@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/dollarshaveclub/acyl/pkg/config"
-	"github.com/dollarshaveclub/acyl/pkg/secrets"
+	"github.com/bkeroack/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/secrets"
 	"github.com/dollarshaveclub/pvc"
 	"github.com/spf13/cobra"
 )

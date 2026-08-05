@@ -7,7 +7,7 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/dollarshaveclub/acyl/pkg/eventlogger"
+	"github.com/bkeroack/acyl/pkg/eventlogger"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -147,7 +147,7 @@ type NotificationPayload struct {
 	Message string `json:"event"`
 
 	// The key that this Notification Payload pertains to
-	LockKey int64 `json:lockKey`
+	LockKey int64 `json:"lockKey"`
 }
 
 // PreemptiveLocker represents a distributed lock where callers can be preempted while waiting for the lock to be released or while holding the lock. High level, the algorithm is as follows:

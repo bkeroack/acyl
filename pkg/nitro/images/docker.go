@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/eventlogger"
-	"github.com/dollarshaveclub/acyl/pkg/ghclient"
+	"github.com/bkeroack/acyl/pkg/eventlogger"
+	"github.com/bkeroack/acyl/pkg/ghclient"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/persistence"
 	"github.com/mholt/archiver"
 	"github.com/pkg/errors"
 )

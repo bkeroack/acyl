@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dollarshaveclub/acyl/pkg/eventlogger"
-	"github.com/dollarshaveclub/acyl/pkg/ghclient"
-	"github.com/dollarshaveclub/acyl/pkg/metrics"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/eventlogger"
+	"github.com/bkeroack/acyl/pkg/ghclient"
+	"github.com/bkeroack/acyl/pkg/metrics"
+	"github.com/bkeroack/acyl/pkg/persistence"
 	furan "github.com/dollarshaveclub/furan/v2/pkg/client"
 	"github.com/dollarshaveclub/furan/v2/pkg/generated/furanrpc"
 )

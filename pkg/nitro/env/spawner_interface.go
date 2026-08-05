@@ -3,8 +3,8 @@ package env
 import (
 	"context"
 
-	"github.com/dollarshaveclub/acyl/pkg/models"
-	"github.com/dollarshaveclub/acyl/pkg/spawner"
+	"github.com/bkeroack/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/spawner"
 )
 
 var _ spawner.EnvironmentSpawner = &Manager{}

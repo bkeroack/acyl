@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/eventlogger"
+	"github.com/bkeroack/acyl/pkg/eventlogger"
 	"github.com/google/uuid"
 	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
 	sqlxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/jmoiron/sqlx"

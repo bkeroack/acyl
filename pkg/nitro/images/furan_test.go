@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dollarshaveclub/acyl/pkg/eventlogger"
-	"github.com/dollarshaveclub/acyl/pkg/metrics"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/eventlogger"
+	"github.com/bkeroack/acyl/pkg/metrics"
+	"github.com/bkeroack/acyl/pkg/persistence"
 	"github.com/dollarshaveclub/furan/rpcclient"
 )
 

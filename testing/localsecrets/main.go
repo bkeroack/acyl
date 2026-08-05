@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/models"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/persistence"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/pflag"
 

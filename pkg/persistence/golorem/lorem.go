@@ -73,7 +73,6 @@ func word(wordLen int) string {
 		}
 		n++
 	}
-	return ""
 }
 
 // Generate a word in a specfied range of letters.

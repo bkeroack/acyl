@@ -11,7 +11,7 @@ jobs:
           POSTGRES_USER: acyl
           POSTGRES_PASSWORD: acyl
           POSTGRES_DB: acyl
-    working_directory: /go/src/github.com/dollarshaveclub/acyl
+    working_directory: /go/src/github.com/bkeroack/acyl
     steps:
       - checkout
       - run:
@@ -28,27 +28,27 @@ jobs:
           command: ./acyl pg-migrate
       - run:
           name: Running tests
-          working_directory: /go/src/github.com/dollarshaveclub/acyl
+          working_directory: /go/src/github.com/bkeroack/acyl
           command: go test -cover $(go list ./... |grep -v pkg/persistence |grep -v pkg/api|grep -v pkg/locker|grep -v pkg/nitro |grep -v /testing/localsecrets)
       - run:
           name: Running Nitro tests
-          working_directory: /go/src/github.com/dollarshaveclub/acyl/pkg/nitro
+          working_directory: /go/src/github.com/bkeroack/acyl/pkg/nitro
           command: go test ./... -cover
       - run:
           name: Running DB tests
-          working_directory: /go/src/github.com/dollarshaveclub/acyl/pkg/persistence
+          working_directory: /go/src/github.com/bkeroack/acyl/pkg/persistence
           command: go test -cover
           environment:
             POSTGRES_ALREADY_RUNNING: 1
       - run:
           name: Running API tests
-          working_directory: /go/src/github.com/dollarshaveclub/acyl/pkg/api
+          working_directory: /go/src/github.com/bkeroack/acyl/pkg/api
           command: go test -cover
           environment:
             POSTGRES_ALREADY_RUNNING: 1
       - run:
           name: Running Locker tests
-          working_directory: /go/src/github.com/dollarshaveclub/acyl/pkg/locker
+          working_directory: /go/src/github.com/bkeroack/acyl/pkg/locker
           command: go test -cover
           environment:
             POSTGRES_ALREADY_RUNNING: 1

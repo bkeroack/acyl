@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/DavidHuie/gomigrate"
-	"github.com/dollarshaveclub/acyl/pkg/config"
-	"github.com/dollarshaveclub/acyl/pkg/models"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/persistence"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/lib/pq/hstore"

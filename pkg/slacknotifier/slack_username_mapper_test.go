@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/ghclient"
+	"github.com/bkeroack/acyl/pkg/ghclient"
 )
 
 var testAccountsMap1 = map[string]string{"githubUN1": "slackUN1"}

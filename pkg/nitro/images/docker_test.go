@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/dollarshaveclub/acyl/pkg/ghclient"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/ghclient"
+	"github.com/bkeroack/acyl/pkg/persistence"
 
 	"github.com/docker/docker/api/types"
 )

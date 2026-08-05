@@ -1,4 +1,4 @@
-module github.com/dollarshaveclub/acyl
+module github.com/bkeroack/acyl
 
 go 1.16
 

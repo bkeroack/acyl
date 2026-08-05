@@ -1,6 +1,6 @@
 package main
 
-import "github.com/dollarshaveclub/acyl/cmd"
+import "github.com/bkeroack/acyl/cmd"
 
 // Set by goreleaser at release build time
 var (

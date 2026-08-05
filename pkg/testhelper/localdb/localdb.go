@@ -21,7 +21,7 @@ func (ldb *LocalDB) MustRun() {
 		ldb.lf = func(s string, args ...interface{}) {}
 	}
 	fail := func(msg string, args ...interface{}) {
-		fmt.Fprintf(os.Stderr, msg, args)
+		fmt.Fprintf(os.Stderr, msg, args...)
 		os.Exit(1)
 	}
 	if os.Getenv("POSTGRES_ALREADY_RUNNING") == "" {

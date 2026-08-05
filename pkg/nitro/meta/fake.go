@@ -3,7 +3,7 @@ package meta
 import (
 	"context"
 
-	"github.com/dollarshaveclub/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/models"
 )
 
 type FakeGetter struct {

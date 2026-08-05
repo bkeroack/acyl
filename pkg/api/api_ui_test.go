@@ -18,9 +18,9 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/pkg/errors"
 
-	"github.com/dollarshaveclub/acyl/pkg/config"
-	"github.com/dollarshaveclub/acyl/pkg/ghclient"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/ghclient"
+	"github.com/bkeroack/acyl/pkg/persistence"
 )
 
 func randomCookieKey() [32]byte {

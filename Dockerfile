@@ -1,18 +1,18 @@
 FROM golang:1.17-alpine
 
-COPY . /go/src/github.com/dollarshaveclub/acyl
-RUN cd /go/src/github.com/dollarshaveclub/acyl && \
-CGO_ENABLED=0 go install github.com/dollarshaveclub/acyl
+COPY . /go/src/github.com/bkeroack/acyl
+RUN cd /go/src/github.com/bkeroack/acyl && \
+CGO_ENABLED=0 go install github.com/bkeroack/acyl
 
 FROM alpine:3.13
 
 RUN mkdir -p /go/bin/ /opt/integration /opt/html /opt/migrations && \
 apk --no-cache add ca-certificates && apk --no-cache upgrade
 COPY --from=0 /go/bin/acyl /go/bin/acyl
-COPY --from=0 /go/src/github.com/dollarshaveclub/acyl/testdata/integration/* /opt/integration/
-COPY --from=0 /go/src/github.com/dollarshaveclub/acyl/data/words.json.gz /opt/
-COPY --from=0 /go/src/github.com/dollarshaveclub/acyl/migrations/* /opt/migrations/
-COPY --from=0 /go/src/github.com/dollarshaveclub/acyl/ui/ /opt/ui/
+COPY --from=0 /go/src/github.com/bkeroack/acyl/testdata/integration/* /opt/integration/
+COPY --from=0 /go/src/github.com/bkeroack/acyl/data/words.json.gz /opt/
+COPY --from=0 /go/src/github.com/bkeroack/acyl/migrations/* /opt/migrations/
+COPY --from=0 /go/src/github.com/bkeroack/acyl/ui/ /opt/ui/
 
 ENV MIGRATIONS_PATH /opt/migrations
 

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/dollarshaveclub/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/config"
 )
 
 func TestGetInstallationTokenForRepo(t *testing.T) {

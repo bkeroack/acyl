@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/models"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/persistence"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 )

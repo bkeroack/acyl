@@ -3,7 +3,7 @@ package slacknotifier
 import (
 	"testing"
 
-	"github.com/dollarshaveclub/acyl/pkg/mocks"
+	"github.com/bkeroack/acyl/pkg/mocks"
 	"github.com/golang/mock/gomock"
 )
 

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dollarshaveclub/acyl/pkg/ghevent"
+	"github.com/bkeroack/acyl/pkg/ghevent"
 	"github.com/google/go-github/github"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"

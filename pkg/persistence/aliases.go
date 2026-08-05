@@ -1,9 +1,9 @@
 package persistence
 
 import (
-	"github.com/dollarshaveclub/acyl/pkg/config"
-	"github.com/dollarshaveclub/acyl/pkg/metrics"
-	"github.com/dollarshaveclub/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/metrics"
+	"github.com/bkeroack/acyl/pkg/models"
 )
 
 type QAType = models.QAType

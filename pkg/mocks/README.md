@@ -6,5 +6,5 @@ If you need to update any for old legacy tests, run:
 
 ```bash
 # For example:
-$ GO111MODULE=off mockgen -package mocks github.com/dollarshaveclub/acyl/pkg/persistence DataLayer > ./mock_datalayer.go
+$ GO111MODULE=off mockgen -package mocks github.com/bkeroack/acyl/pkg/persistence DataLayer > ./mock_datalayer.go
 ```

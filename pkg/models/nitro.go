@@ -9,7 +9,7 @@ import (
 
 	"github.com/lib/pq"
 
-	nitroerrors "github.com/dollarshaveclub/acyl/pkg/nitro/errors"
+	nitroerrors "github.com/bkeroack/acyl/pkg/nitro/errors"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 )

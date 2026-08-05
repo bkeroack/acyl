@@ -10,7 +10,7 @@ import (
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	git "gopkg.in/src-d/go-git.v4"
 
-	"github.com/dollarshaveclub/acyl/pkg/memfs"
+	"github.com/bkeroack/acyl/pkg/memfs"
 	billy "gopkg.in/src-d/go-billy.v4"
 	gitplumb "gopkg.in/src-d/go-git.v4/plumbing"
 	gitcache "gopkg.in/src-d/go-git.v4/plumbing/cache"

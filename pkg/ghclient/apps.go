@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/dollarshaveclub/acyl/pkg/config"
+	"github.com/bkeroack/acyl/pkg/config"
 	"github.com/google/go-github/v38/github"
 	"golang.org/x/oauth2"
 )

@@ -2,9 +2,9 @@
 
 default: build
 
+# The 'safe' tag is required at runtime; see "Building from source" in README.md.
 build:
-	go mod vendor
-	go install github.com/dollarshaveclub/acyl
+	go build -mod=vendor -tags safe -o acyl .
 
 generate:
 	go generate ./...

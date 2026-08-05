@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dollarshaveclub/acyl/pkg/models"
-	"github.com/dollarshaveclub/acyl/pkg/nitro/metrics"
-	"github.com/dollarshaveclub/acyl/pkg/persistence"
+	"github.com/bkeroack/acyl/pkg/models"
+	"github.com/bkeroack/acyl/pkg/nitro/metrics"
+	"github.com/bkeroack/acyl/pkg/persistence"
 )
 
 type testImageBuildBackend struct {

@@ -216,7 +216,7 @@ var DefaultUIBranding = UIBrandingConfig{
 	LogoURL:    "https://s3.amazonaws.com/dsc-misc/img/acyl.png",
 	LogoHeight: "30",
 	LogoStyle:  "d-inline-block align-top mr-1",
-	LogoLink:   "https://github.com/dollarshaveclub/acyl",
+	LogoLink:   "https://github.com/bkeroack/acyl",
 	LogoAlt:    "Acyl Chloride",
 	Title:      "Acyl UI",
 }
